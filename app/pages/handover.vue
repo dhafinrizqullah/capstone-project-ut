@@ -14,12 +14,15 @@ const fmtKg = (v: number) => `${new Intl.NumberFormat(tag.value, { maximumFracti
 const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
 
 const { data: ships, status, refresh } = await useAsyncData('handover', async () => {
-  const { data } = await client
+  // ponytail: superadmin sees every shipment (global scope); collectors see only their own
+  const { data: me } = await client.from('profiles').select('role').eq('id', myId).maybeSingle()
+  let q = client
     .from('shipments')
     .select('id,note_number,total_weight,total_value,status,shipped_at')
-    .eq('collector_id', myId)
     .order('shipped_at', { ascending: false })
     .limit(20)
+  if (me?.role !== 'superadmin') q = q.eq('collector_id', myId)
+  const { data } = await q
   return data ?? []
 })
 
