@@ -10,7 +10,8 @@
     "shipments": "Ship to Collector",
     "handover": "Handover Notes",
     "report": "Community Report",
-    "users": "Manage Users"
+    "users": "Manage Users",
+    "areas": "RW / RT Areas"
   },
   "common": {
     "logout": "Sign out",

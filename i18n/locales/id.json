@@ -10,7 +10,8 @@
     "shipments": "Kirim ke Pengepul",
     "handover": "Nota Serah Terima",
     "report": "Laporan RW",
-    "users": "Kelola Pengguna"
+    "users": "Kelola Pengguna",
+    "areas": "Wilayah RW / RT"
   },
   "common": {
     "logout": "Keluar",

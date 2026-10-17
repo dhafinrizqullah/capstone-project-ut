@@ -40,6 +40,7 @@ Gates before finishing: `pnpm lint`, `pnpm test`, `pnpm build` all green. E2E (`
 | `/handover` | `pengepul` | verify notes, confirm receipt |
 | `/report` | `pengurus_rw` | Excel export (`xlsx`), print-to-PDF |
 | `/admin/users` | `superadmin` | create users per role via `POST /api/admin/users` |
+| `/admin/areas` | `superadmin` | RW/RT master CRUD (combobox source everywhere) |
 | `/denied` | any authed | access-denied fallback |
 
 New page checklist: `definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: [...] })`, `<script>` first in SFC, `UDashboardPanel` + `#header` (`UDashboardNavbar` + `UDashboardSidebarCollapse`) + `#body`, all numbers/dates via `Intl.*` with `Asia/Jakarta`, empty states via `#empty` or `common.empty`.

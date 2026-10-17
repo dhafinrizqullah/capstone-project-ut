@@ -39,7 +39,12 @@ const items = computed<NavItem[]>(() => {
   }
   if (role.value === 'pengepul' || all) main.push({ label: t('nav.handover'), icon: 'i-lucide-clipboard-check', to: '/handover' })
   if (role.value === 'pengurus_rw' || all) main.push({ label: t('nav.report'), icon: 'i-lucide-file-down', to: '/report' })
-  if (role.value === 'superadmin') main.push({ label: t('nav.users'), icon: 'i-lucide-users', to: '/admin/users' })
+  if (role.value === 'superadmin') {
+    main.push(
+      { label: t('nav.users'), icon: 'i-lucide-users', to: '/admin/users' },
+      { label: t('nav.areas'), icon: 'i-lucide-map-pin', to: '/admin/areas' },
+    )
+  }
   return main
 })
 
