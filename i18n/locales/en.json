@@ -179,7 +179,9 @@
     "email": "Email",
     "password": "Initial password",
     "role": "Role",
-    "rt": "Neighbourhood unit (residents only)",
+    "rt": "Unit",
+    "rtRequired": "Ward and unit are required for a resident.",
+    "rwRequired": "Ward is required for an operator or community admin.",
     "create": "Create User",
     "created": "User {email} created.",
     "colName": "Name",
@@ -197,5 +199,14 @@
     "title": "Access denied",
     "subtitle": "Your account cannot access this page.",
     "back": "Back to dashboard"
+  },
+  "validation": {
+    "required": "Required.",
+    "email": "Enter a valid email address.",
+    "format": "Invalid format.",
+    "choice": "Invalid choice.",
+    "tooShort": "At least {n} characters.",
+    "tooSmall": "Minimum {n}.",
+    "nonNegative": "Cannot be negative."
   }
 }

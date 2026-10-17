@@ -7,6 +7,7 @@ const { locale, t } = useI18n()
 const myId = useMyId()
 const client = useSupabaseClient<Database>()
 const toast = useToast()
+const { scopeRw } = await useMyScope()
 
 const tag = computed(() => (locale.value === 'id' ? 'id-ID' : 'en-US'))
 const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }))
@@ -17,11 +18,14 @@ const { data } = await useAsyncData('cashier-refs', async () => {
     client.from('waste_categories').select('id,name,price_per_kg').eq('active', true).order('name'),
   ])
   return {
-    residents: (residents.data ?? []).map(r => ({
-      id: r.id,
-      full_name: r.full_name,
-      area: r.area as unknown as { rw: string, rt: string } | null,
-    })),
+    // a RW-bound operator only serves their own RW
+    residents: (residents.data ?? [])
+      .map(r => ({
+        id: r.id,
+        full_name: r.full_name,
+        area: r.area as unknown as { rw: string, rt: string } | null,
+      }))
+      .filter(r => !scopeRw.value || r.area?.rw === scopeRw.value),
     cats: cats.data ?? [],
   }
 })
@@ -104,11 +108,7 @@ async function submit() {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('cashier.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <UDashboardNavbar :title="$t('cashier.title')" />
     </template>
 
     <template #body>

@@ -54,11 +54,7 @@ const statusLabel = (s: string) => s === 'disetujui' ? t('resident.approved') : 
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('resident.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <UDashboardNavbar :title="$t('resident.title')" />
     </template>
 
     <template #body>

@@ -56,18 +56,14 @@ async function deleteArea(id: number) {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('areas.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #right>
-          <UButton icon="i-lucide-plus" :label="$t('areas.add')" @click="openNew" />
-        </template>
-      </UDashboardNavbar>
+      <UDashboardNavbar :title="$t('areas.title')" />
     </template>
 
     <template #body>
-      <p class="text-sm text-muted mb-4">{{ $t('areas.subtitle') }}</p>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <p class="text-sm text-muted">{{ $t('areas.subtitle') }}</p>
+        <UButton class="self-start sm:self-auto" icon="i-lucide-plus" :label="$t('areas.add')" @click="openNew" />
+      </div>
       <UCard>
         <ul class="grid gap-1">
           <li v-for="a in areaRows ?? []" :key="a.id" class="flex items-center justify-between gap-2 text-sm py-1.5 border-t border-muted first:border-t-0">

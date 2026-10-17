@@ -155,6 +155,7 @@ export type Database = {
           full_name: string
           id: string
           role: string
+          rw: string | null
         }
         Insert: {
           area_id?: number | null
@@ -163,6 +164,7 @@ export type Database = {
           full_name: string
           id: string
           role: string
+          rw?: string | null
         }
         Update: {
           area_id?: number | null
@@ -171,6 +173,7 @@ export type Database = {
           full_name?: string
           id?: string
           role?: string
+          rw?: string | null
         }
         Relationships: [
           {

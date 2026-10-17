@@ -8,6 +8,7 @@ const { locale, t } = useI18n()
 const myId = useMyId()
 const client = useSupabaseClient<Database>()
 const toast = useToast()
+const { scopeRw } = await useMyScope()
 
 const tag = computed(() => (locale.value === 'id' ? 'id-ID' : 'en-US'))
 const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }))
@@ -24,7 +25,10 @@ const { data: rows, status, refresh } = await useAsyncData('payouts', async () =
 }, { watch: [filter] })
 
 // ponytail: push filtering into the query once data grows; small dataset so filter locally
-const visible = computed(() => (rows.value ?? []).filter(r => filter.value === 'all' || r.status === filter.value))
+const visible = computed(() => (rows.value ?? []).filter(r =>
+  (filter.value === 'all' || r.status === filter.value)
+  // a RW-bound operator only validates their own RW's requests
+  && (!scopeRw.value || residentRw(r.resident) === scopeRw.value)))
 
 type Row = NonNullable<typeof rows.value>[number]
 const columns: TableColumn<Row>[] = [
@@ -78,33 +82,30 @@ function residentLabel(resident: unknown) {
   const area = r.area ? ` · ${r.area.rw} · ${r.area.rt}` : ''
   return `${r.full_name}${area}`
 }
+
+const residentRw = (resident: unknown) => (resident as { area: { rw: string } | null } | null)?.area?.rw ?? null
 </script>
 
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('payouts.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
-      <UDashboardToolbar>
-        <template #right>
-          <USelect
-            v-model="filter"
-            :items="[
-              { label: $t('resident.pending'), value: 'menunggu' },
-              { label: $t('resident.approved'), value: 'disetujui' },
-              { label: $t('resident.rejected'), value: 'ditolak' },
-              { label: $t('common.all'), value: 'all' },
-            ]"
-          />
-        </template>
-      </UDashboardToolbar>
+      <UDashboardNavbar :title="$t('payouts.title')" />
     </template>
 
     <template #body>
-      <p class="text-sm text-muted mb-4">{{ $t('payouts.subtitle') }}</p>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <p class="text-sm text-muted">{{ $t('payouts.subtitle') }}</p>
+        <USelect
+          v-model="filter"
+          :items="[
+            { label: $t('resident.pending'), value: 'menunggu' },
+            { label: $t('resident.approved'), value: 'disetujui' },
+            { label: $t('resident.rejected'), value: 'ditolak' },
+            { label: $t('common.all'), value: 'all' },
+          ]"
+          class="w-40"
+        />
+      </div>
       <UTable :data="visible" :columns="columns" :loading="status === 'pending'">
         <template #resident-cell="{ row }">
           {{ residentLabel(row.original.resident) }}

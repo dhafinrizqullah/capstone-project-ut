@@ -122,6 +122,8 @@ const wd = async (email, amount, status) => {
 await wd('siti@rw05.id', 50000, 'disetujui')
 await wd('maya@rw05.id', 100000, 'menunggu')
 await wd('joko@rw05.id', 75000, 'ditolak')
+// a second RW's pending request: proves petugas/validasi scope to their own RW
+await wd('nina@rw06.id', 60000, 'menunggu')
 
 // 5. two collector shipments
 const mkShipment = async (status, dayAgo) => {
@@ -151,4 +153,4 @@ const mkShipment = async (status, dayAgo) => {
 const n1 = await mkShipment('diterima', 9)
 const n2 = await mkShipment('dikirim', 2)
 
-console.log(`\nDone: ${RESIDENTS.length} residents, ${depCount} deposits, 3 withdrawals, notes ${n1} + ${n2}`)
+console.log(`\nDone: ${RESIDENTS.length} residents, ${depCount} deposits, 4 withdrawals, notes ${n1} + ${n2}`)

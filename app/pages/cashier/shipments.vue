@@ -80,11 +80,7 @@ async function submit() {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('ship.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <UDashboardNavbar :title="$t('ship.title')" />
     </template>
 
     <template #body>

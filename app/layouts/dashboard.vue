@@ -38,6 +38,8 @@ const items = computed<NavItem[]>(() => {
     )
   }
   if (role.value === 'pengepul' || all) main.push({ label: t('nav.handover'), icon: 'i-lucide-clipboard-check', to: '/handover' })
+  // pengurus_rw may read the price master, but has no cashier menu of its own
+  if (role.value === 'pengurus_rw') main.push({ label: t('nav.prices'), icon: 'i-lucide-tags', to: '/cashier/prices' })
   if (role.value === 'pengurus_rw' || all) main.push({ label: t('nav.report'), icon: 'i-lucide-file-down', to: '/report' })
   if (role.value === 'superadmin') {
     main.push(
@@ -47,6 +49,11 @@ const items = computed<NavItem[]>(() => {
   }
   return main
 })
+
+// ponytail: two locales = a sliding segmented switch, not a dropdown
+// (the pill is half the track minus p-1; a third locale needs a measured pill)
+const localeIndex = computed(() => (locales.value ?? []).findIndex(l => l.code === locale.value))
+const otherLocale = computed(() => (locales.value ?? []).find(l => l.code !== locale.value))
 
 async function logout() {
   await useSupabaseClient().auth.signOut()
@@ -59,12 +66,33 @@ async function logout() {
     <UDashboardSidebar
       collapsible
       class="!border-0 bg-gradient-to-b from-emerald-950 to-emerald-700 text-emerald-50"
-      :ui="{ content: 'bg-gradient-to-b from-emerald-950 to-emerald-700 text-emerald-50' }"
+      :ui="{
+        // ponytail: the theme ships no width transition — a collapsed rail that
+        // jumps reads as a glitch. overflow-hidden keeps growing labels inside.
+        root: 'overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
+        content: 'bg-gradient-to-b from-emerald-950 to-emerald-700 text-emerald-50',
+      }"
     >
       <template #header="{ collapsed }">
-        <div class="flex items-center gap-2 font-extrabold text-white">
-          <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-white/20" aria-hidden="true">♻</span>
-          <span v-if="!collapsed">{{ $t('brandShort') }}</span>
+        <!-- the control lives with the thing it collapses; the navbar keeps its own
+             (mobile-only) drawer toggle. No logo box: at 15% sidebar width a boxed
+             emoji mark squeezed the brand into "Bank Sa…" -->
+        <div class="flex w-full items-center" :class="collapsed ? 'justify-center gap-0' : 'gap-1.5'">
+          <UIcon
+            name="i-lucide-recycle"
+            class="size-5 shrink-0 overflow-hidden text-emerald-50 transition-[max-width,opacity] duration-200 ease-out motion-reduce:transition-none"
+            :class="collapsed ? 'max-w-0 opacity-0' : 'max-w-5 opacity-100'"
+            aria-hidden="true"
+          />
+          <span
+            class="truncate text-sm font-extrabold text-white transition-[max-width,opacity] duration-200 ease-out motion-reduce:transition-none"
+            :class="collapsed ? 'max-w-0 opacity-0' : 'max-w-full opacity-100'"
+          >{{ $t('brandShort') }}</span>
+          <UDashboardSidebarCollapse
+            :class="collapsed
+              ? 'text-emerald-50 hover:bg-white/10 hover:text-white'
+              : 'ms-auto text-emerald-50 hover:bg-white/10 hover:text-white'"
+          />
         </div>
       </template>
 
@@ -74,7 +102,7 @@ async function logout() {
             <li v-for="it in items" :key="it.to">
               <NuxtLink
                 :to="it.to"
-                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-white/10 hover:text-white"
+                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-emerald-50 transition-colors duration-200 hover:bg-white/10 hover:text-white motion-reduce:transition-none"
                 active-class="bg-white/20 !text-white"
                 :class="collapsed ? 'justify-center px-0' : ''"
               >
@@ -88,24 +116,28 @@ async function logout() {
 
       <template #footer="{ collapsed }">
         <div class="flex w-full flex-col gap-2">
-          <!-- Segmented language switch: one tap, no dropdown for two options -->
+          <!-- One tap, no dropdown: two locales fit side by side -->
           <div
             v-if="!collapsed"
-            class="flex items-center gap-1 rounded-xl bg-white/10 p-1"
+            class="relative flex rounded-xl bg-white/10 p-1 text-xs font-semibold"
             role="group"
             :aria-label="$t('common.language')"
           >
-            <UIcon name="i-lucide-globe" class="ml-1.5 size-4 shrink-0 text-emerald-100" aria-hidden="true" />
+            <span
+              aria-hidden="true"
+              class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-white shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
+              :style="{ transform: `translateX(${localeIndex * 100}%)` }"
+            />
             <button
               v-for="l in locales"
               :key="l.code"
+              type="button"
+              class="relative flex-1 rounded-lg px-2 py-1.5 transition-colors duration-200 motion-reduce:transition-none"
+              :class="locale === l.code ? 'text-emerald-900' : 'text-emerald-100 hover:text-white'"
               :aria-pressed="locale === l.code"
-              :title="l.name"
-              class="flex-1 rounded-lg px-2 py-1 text-xs font-bold tracking-wide transition"
-              :class="locale === l.code ? 'bg-white text-emerald-800 shadow' : 'text-emerald-100 hover:text-white'"
               @click="setLocale(l.code)"
             >
-              {{ l.code.toUpperCase() }}
+              {{ l.name }}
             </button>
           </div>
           <UButton
@@ -115,8 +147,8 @@ async function logout() {
             variant="ghost"
             class="text-white hover:bg-white/10"
             :aria-label="$t('common.language')"
-            :title="`${$t('common.language')}: ${locale.toUpperCase()}`"
-            @click="setLocale(locale === 'id' ? 'en' : 'id')"
+            :title="`${$t('common.language')}: ${otherLocale?.name}`"
+            @click="setLocale(otherLocale?.code ?? 'id')"
           />
           <div v-if="!collapsed" class="rounded-2xl bg-white/10 p-4 text-sm">
             <strong class="block truncate text-white">{{ profile?.full_name }}</strong>

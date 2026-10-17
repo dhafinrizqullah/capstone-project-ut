@@ -60,10 +60,12 @@ export async function ensureUser({ email, password, full_name, role, rt, rw }) {
   }
   if (!id) throw new Error(`failed to resolve id for ${email}`)
   const areaId = role === 'warga' ? await ensureArea(rw, rt) : null
+  // residents are scoped by area (RW+RT); RW-bound staff by the profile's rw
+  const staffRw = role === 'petugas' || role === 'pengurus_rw' ? rw ?? 'RW 05' : null
   await api('/rest/v1/profiles', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ id, email, full_name, role, area_id: areaId }),
+    body: JSON.stringify({ id, email, full_name, role, area_id: areaId, rw: staffRw }),
   })
   console.log(`${created ? 'create' : 'reuse'}: ${email}`)
   return id

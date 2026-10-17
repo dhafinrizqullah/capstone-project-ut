@@ -14,7 +14,7 @@
     "db:demo": "node --env-file=.env scripts/seed-demo.mjs",
     "db:push": "supabase db push",
     "postinstall": "nuxt prepare",
-    "test:e2e": "e2e run"
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@nuxt/ui": "^4.12.0",

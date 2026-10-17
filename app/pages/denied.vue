@@ -4,6 +4,11 @@ definePageMeta({ layout: 'dashboard', middleware: ['auth'] })
 
 <template>
   <UDashboardPanel>
+    <template #header>
+      <!-- no navbar title: the body already shows the centred denial state -->
+      <UDashboardNavbar />
+    </template>
+
     <template #body>
       <div class="max-w-md mx-auto text-center py-16">
         <h1 class="text-2xl font-extrabold mb-2">{{ $t('denied.title') }}</h1>

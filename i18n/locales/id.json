@@ -178,7 +178,9 @@
     "email": "Email",
     "password": "Kata sandi awal",
     "role": "Peran",
-    "rt": "RT (khusus warga)",
+    "rt": "RT",
+    "rtRequired": "RW dan RT wajib diisi untuk warga.",
+    "rwRequired": "RW wajib diisi untuk petugas dan pengurus RW.",
     "create": "Buat Pengguna",
     "created": "Pengguna {email} dibuat.",
     "colName": "Nama",
@@ -196,5 +198,14 @@
     "title": "Akses ditolak",
     "subtitle": "Akunmu tidak punya akses ke halaman ini.",
     "back": "Kembali ke dasbor"
+  },
+  "validation": {
+    "required": "Wajib diisi.",
+    "email": "Format email tidak valid.",
+    "format": "Format tidak valid.",
+    "choice": "Pilihan tidak valid.",
+    "tooShort": "Minimal {n} karakter.",
+    "tooSmall": "Minimal {n}.",
+    "nonNegative": "Tidak boleh negatif."
   }
 }

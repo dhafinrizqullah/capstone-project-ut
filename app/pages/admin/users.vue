@@ -12,7 +12,7 @@ const toast = useToast()
 const { data: rows, refresh } = await useAsyncData('admin-users', async () => {
   const { data } = await client
     .from('profiles')
-    .select('id,full_name,email,role,area:areas!profiles_area_id_fkey(rw,rt)')
+    .select('id,full_name,email,role,rw,area:areas!profiles_area_id_fkey(rw,rt)')
     .order('created_at', { ascending: false })
     .limit(100)
   return (data ?? []).map(r => ({
@@ -20,7 +20,8 @@ const { data: rows, refresh } = await useAsyncData('admin-users', async () => {
     full_name: r.full_name,
     email: r.email,
     role: r.role,
-    rw: (r.area as unknown as { rw: string, rt: string } | null)?.rw ?? null,
+    // residents carry their RW on the area; RW-bound staff carry it on the profile
+    rw: (r.area as unknown as { rw: string, rt: string } | null)?.rw ?? r.rw ?? null,
     rt: (r.area as unknown as { rw: string, rt: string } | null)?.rt ?? null,
   }))
 })
@@ -62,13 +63,22 @@ const roleLabel = (r: string) => ({
   superadmin: t('users.roleSuperadmin'),
 }[r] ?? r)
 
+// ponytail: no superadmin here — the backend rejects it too. Roles differ in how
+// they are scoped: residents by area (RW + RT), RW-bound staff by RW only.
+const RW_BOUND = ['petugas', 'pengurus_rw']
 const schema = z.object({
   full_name: z.string().min(1),
   email: z.email(),
   password: z.string().min(8),
-  role: z.enum(['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin']),
+  role: z.enum(['warga', 'petugas', 'pengepul', 'pengurus_rw']),
   rt: z.string().optional(),
-  rw: z.string().min(1).default('RW 05'),
+  rw: z.string().optional(),
+}).refine(d => d.role !== 'warga' || (!!d.rw && !!d.rt), {
+  path: ['rt'],
+  message: () => t('users.rtRequired'),
+}).refine(d => !RW_BOUND.includes(d.role) || !!d.rw, {
+  path: ['rw'],
+  message: () => t('users.rwRequired'),
 })
 type Schema = z.output<typeof schema>
 const state = reactive<Partial<Schema>>({ full_name: '', email: '', password: '', role: 'warga', rt: '', rw: 'RW 05' })
@@ -92,7 +102,7 @@ watch(() => state.rw, () => {
   if (state.rt && !rtSuggestions.value.includes(state.rt)) state.rt = ''
 })
 
-const roleItems = computed(() => (['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin'] as const)
+const roleItems = computed(() => (['warga', 'petugas', 'pengepul', 'pengurus_rw'] as const)
   .map(v => ({ label: roleLabel(v), value: v })))
 
 async function onCreate(event: FormSubmitEvent<Schema>) {
@@ -113,11 +123,7 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('users.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <UDashboardNavbar :title="$t('users.title')" />
     </template>
 
     <template #body>
@@ -138,11 +144,16 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
             <UFormField name="role" :label="$t('users.role')" required>
               <USelect v-model="state.role" :items="roleItems" value-key="value" class="w-full" />
             </UFormField>
-            <UFormField name="rw" :label="$t('users.colRw')" required>
+            <div v-if="state.role === 'warga'" class="grid gap-3 sm:grid-cols-2">
+              <UFormField name="rw" :label="$t('users.colRw')" required>
+                <UInputMenu v-model="state.rw" :items="rwOptions" create-item class="w-full" />
+              </UFormField>
+              <UFormField name="rt" :label="$t('users.rt')" required>
+                <UInputMenu v-model="state.rt" :items="rtSuggestions" create-item class="w-full" />
+              </UFormField>
+            </div>
+            <UFormField v-else-if="RW_BOUND.includes(state.role ?? '')" name="rw" :label="$t('users.colRw')" required>
               <UInputMenu v-model="state.rw" :items="rwOptions" create-item class="w-full" />
-            </UFormField>
-            <UFormField v-if="state.role === 'warga'" name="rt" :label="$t('users.rt')">
-              <UInputMenu v-model="state.rt" :items="rtSuggestions" create-item class="w-full" />
             </UFormField>
             <UButton type="submit" :loading="creating" :label="$t('users.create')" block />
           </UForm>

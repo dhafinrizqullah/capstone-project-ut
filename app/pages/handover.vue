@@ -61,11 +61,7 @@ async function confirm(id: number) {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('handover.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <UDashboardNavbar :title="$t('handover.title')" />
     </template>
 
     <template #body>

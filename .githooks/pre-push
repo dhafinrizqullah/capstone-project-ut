@@ -1,0 +1,9 @@
+# E2E gate: the full suite runs before anything leaves this clone.
+# Skip once with `git push --no-verify`.
+#
+# e2e.config.ts starts `pnpm dev` itself when port 3000 is idle, and reuses an
+# already-running dev server otherwise, so a dev shell is optional.
+set -e
+
+echo "pre-push → pnpm test:e2e"
+pnpm test:e2e

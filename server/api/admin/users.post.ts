@@ -6,9 +6,20 @@ const bodySchema = z.object({
   email: z.email().trim().toLowerCase(),
   password: z.string().min(8, 'Minimum 8 characters'),
   full_name: z.string().trim().min(1),
-  role: z.enum(['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin']),
+  // superadmin is never created here — only by the dev seed / manual provisioning
+  role: z.enum(['warga', 'petugas', 'pengepul', 'pengurus_rw']),
   rt: z.string().trim().nullable().optional(),
-  rw: z.string().trim().min(1).default('RW 05'),
+  rw: z.string().trim().optional(),
+}).superRefine((body, ctx) => {
+  // residents are placed by area (RW + RT); RW-bound staff carry their RW on the profile
+  const needsArea = body.role === 'warga'
+  const needsRw = body.role === 'petugas' || body.role === 'pengurus_rw'
+  if (needsArea && (!body.rw || !body.rt)) {
+    ctx.addIssue({ code: 'custom', path: ['rt'], message: 'Ward and unit are required' })
+  }
+  if (needsRw && !body.rw) {
+    ctx.addIssue({ code: 'custom', path: ['rw'], message: 'Ward is required for this role' })
+  }
 })
 
 export default defineEventHandler(async (event) => {
@@ -58,6 +69,8 @@ export default defineEventHandler(async (event) => {
     full_name: body.full_name,
     role: body.role,
     area_id: areaId,
+    // staff scope only: residents carry their RW through area_id
+    rw: body.role === 'petugas' || body.role === 'pengurus_rw' ? body.rw : null,
   })
   if (profileErr) throw createError({ statusCode: 400, message: profileErr.message })
 

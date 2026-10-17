@@ -37,11 +37,9 @@ const { data: dash, status } = await useAsyncData('dash', async () => {  const [
 
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
 
-// ponytail: superadmin sees everything with an RT filter; single-RW scope for now
-const { data: myRole } = await useAsyncData('dash-role', async () => {
-  const { data } = await client.from('profiles').select('role').eq('id', useMyId()).maybeSingle()
-  return data?.role ?? null
-})
+// ponytail: superadmin sees everything with an RT filter; RW-bound staff (petugas,
+// pengurus_rw) are pinned to their own RW, so their RT filter stays useful
+const { role: myRole, scopeRw } = await useMyScope()
 const rtFilter = ref('all')
 const rwFilter = ref('all')
 const rtOptions = computed(() => {
@@ -61,6 +59,8 @@ const scopeOf = (residentId: string) => {
 }
 const inScope = (residentId: string) => {
   const s = scopeOf(residentId)
+  // a RW-bound staff member never sees another RW, whatever the filters say
+  if (scopeRw.value && s.rw !== scopeRw.value) return false
   return (rwFilter.value === 'all' || s.rw === rwFilter.value)
     && (rtFilter.value === 'all' || s.rt === rtFilter.value)
 }
@@ -109,9 +109,10 @@ const composition = computed(() => {
 const perRt = computed(() => {
   // ponytail: RT names repeat across RWs — qualify the label when viewing all RWs
   const byKey = new Map<string, number>()
+  const allRws = rwFilter.value === 'all' && !scopeRw.value
   for (const dep of fDeposits.value) {
     const s = scopeOf(dep.resident_id)
-    const key = rwFilter.value === 'all' ? `${s.rw} · ${s.rt}` : s.rt
+    const key = allRws ? `${s.rw} · ${s.rt}` : s.rt
     byKey.set(key, (byKey.get(key) ?? 0) + Number(dep.total_weight))
   }
   return [...byKey.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([rt, kg]) => ({ rt, kg }))
@@ -223,11 +224,7 @@ onUnmounted(() => charts.forEach(c => c.destroy()))
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('dash.title')">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <UDashboardNavbar :title="$t('dash.title')" />
     </template>
 
     <template #body>

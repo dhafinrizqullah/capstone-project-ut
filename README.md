@@ -54,11 +54,25 @@ pnpm db:seed   # (dev) create/refresh the 4 demo accounts (one per role)
 - `pnpm dev` - start dev server
 - `pnpm build` - production build
 - `pnpm test` - run tests
-- `pnpm test:e2e` - run E2E suite (needs `pnpm dev` running)
+- `pnpm test:e2e` - run the full E2E suite (starts the dev server itself)
 - `pnpm lint` - lint code
 - `pnpm db:push` - apply pending Supabase migrations
 - `pnpm db:seed` - (dev) seed 4 demo accounts, one per role
 - `pnpm db:demo` - (dev) realistic demo dataset (residents, 6 months of weighings, withdrawals, shipments)
+
+## E2E gate before push
+
+Every push runs the whole E2E suite through a `pre-push` hook in `.githooks/`
+(`core.hooksPath` is set by `pnpm install`, via the `prepare` script). The suite
+drives the seeded demo accounts on the dev Supabase project, so run
+`pnpm db:seed` (and `pnpm db:demo` for the list/report specs) first.
+
+- bypass once with `git push --no-verify`
+- `pnpm test:e2e` starts `pnpm dev` when port 3000 is idle and reuses a running
+  dev server otherwise; `APP_URL` points it at another origin
+- specs: `tests/roles.e2e.ts` (per-role menu, page access, guards, 360px),
+  `tests/flows.e2e.ts` (one real action per role), `tests/admin-users.e2e.ts`,
+  `tests/auth.e2e.ts`, `tests/responsive.e2e.ts`
 
 ## License
 
