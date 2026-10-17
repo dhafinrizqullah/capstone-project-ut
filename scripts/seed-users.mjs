@@ -17,6 +17,7 @@ const USERS = [
   { email: 'petugas@rw05.id', full_name: 'Andi Petugas', role: 'petugas', rt: null },
   { email: 'pengepul@rw05.id', full_name: 'CV Maju Bersama', role: 'pengepul', rt: null },
   { email: 'admin@rw05.id', full_name: 'Pengurus RW 05', role: 'pengurus_rw', rt: null },
+  { email: 'superadmin@rw05.id', full_name: 'Superadmin Sistem', role: 'superadmin', rt: null },
 ]
 
 const headers = {

@@ -1,28 +1,51 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { loginSchema, type LoginSchema } from '~/utils/login-schema'
+import type { Database } from '~/types/database.types'
+import { HOME_BY_ROLE } from '~/middleware/role'
 
 definePageMeta({ layout: false, middleware: 'guest' })
 
+const { t } = useI18n()
 const state = reactive<Partial<LoginSchema>>({ email: '', password: '' })
 
-const supabase = useSupabaseClient()
+const client = useSupabaseClient<Database>()
 const loading = ref(false)
 const serverError = ref('')
 
 async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
   loading.value = true
   serverError.value = ''
-  const { error: authError } = await supabase.auth.signInWithPassword({
-    email: event.data.email,
-    password: event.data.password,
-  })
-  loading.value = false
-  if (authError) {
-    serverError.value = 'Email atau kata sandi salah. Periksa kembali lalu coba lagi.'
-    return
+  try {
+    // ponytail: pakai user dari respons sign-in langsung — tanpa roundtrip getUser yang gagal saat cookie Secure ditolak http
+    const { data: signIn, error: authError } = await client.auth.signInWithPassword({
+      email: event.data.email,
+      password: event.data.password,
+    })
+    if (authError) {
+      serverError.value = t('auth.failed')
+      return
+    }
+    const user = signIn.user
+    // ponytail: tunggu listener auth modul sinkron (INITIAL_SESSION bisa menimpa sesaat) sebelum navigasi
+    const userState = useSupabaseUser()
+    const deadline = Date.now() + 5000
+    while (!userState.value && Date.now() < deadline) await new Promise(r => setTimeout(r, 100))
+    const { data: profile, error: profErr } = user
+      ? await client.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      : { data: null, error: { message: 'no-user' } as Error }
+    if (profErr || !profile) {
+      serverError.value = profErr?.message ?? t('auth.failed')
+      return
+    }
+    await navigateTo(HOME_BY_ROLE[profile.role] ?? '/')
   }
-  await navigateTo('/')
+  catch (e) {
+    serverError.value = (e as Error).message ?? t('auth.failed')
+  }
+  finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -33,30 +56,30 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
       <div class="relative max-w-xl">
         <div class="flex items-center gap-3 font-extrabold text-lg mb-8">
           <span class="w-10 h-10 rounded-xl bg-white/20 grid place-items-center" aria-hidden="true">♻</span>
-          <span>Bank Sampah RW Digital</span>
+          <span>{{ $t('brand') }}</span>
         </div>
         <h1 class="text-5xl font-extrabold leading-tight tracking-tight mb-4 text-balance">
-          Pilah sampah dari rumah, pantau tabungan secara real-time.
+          {{ $t('auth.heroTitle') }}
         </h1>
         <p class="text-emerald-100 leading-relaxed max-w-md">
-          Platform web untuk warga, petugas, pengepul, dan pengurus RW. Pencatatan penimbangan, saldo tabungan, dan dasbor analitik timbulan sampah dalam satu sistem.
+          {{ $t('auth.heroSubtitle') }}
         </p>
         <div class="grid grid-cols-2 gap-3 mt-8 max-w-md">
           <div class="bg-white/10 border border-white/20 rounded-2xl p-4">
             <div class="text-2xl font-extrabold">12.4 ton</div>
-            <div class="text-sm text-emerald-200">Sampah terkumpul</div>
+            <div class="text-sm text-emerald-200">{{ $t('auth.statWaste') }}</div>
           </div>
           <div class="bg-white/10 border border-white/20 rounded-2xl p-4">
             <div class="text-2xl font-extrabold">326</div>
-            <div class="text-sm text-emerald-200">Warga aktif</div>
+            <div class="text-sm text-emerald-200">{{ $t('auth.statResidents') }}</div>
           </div>
           <div class="bg-white/10 border border-white/20 rounded-2xl p-4">
             <div class="text-2xl font-extrabold">Rp 18,7 jt</div>
-            <div class="text-sm text-emerald-200">Saldo tabungan</div>
+            <div class="text-sm text-emerald-200">{{ $t('auth.statBalance') }}</div>
           </div>
           <div class="bg-white/10 border border-white/20 rounded-2xl p-4">
             <div class="text-2xl font-extrabold">94%</div>
-            <div class="text-sm text-emerald-200">Kepatuhan pilah</div>
+            <div class="text-sm text-emerald-200">{{ $t('auth.statCompliance') }}</div>
           </div>
         </div>
       </div>
@@ -64,11 +87,11 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
 
     <div class="flex items-center justify-center p-6 lg:p-10 bg-emerald-50">
       <div class="w-full max-w-md bg-white border border-emerald-100 rounded-3xl shadow-2xl p-8">
-        <h2 class="text-2xl font-extrabold tracking-tight mb-1 text-slate-900">Masuk</h2>
-        <p class="text-slate-500 mb-6">Gunakan akun email dan kata sandi sesuai peran.</p>
+        <h2 class="text-2xl font-extrabold tracking-tight mb-1 text-slate-900">{{ $t('auth.title') }}</h2>
+        <p class="text-slate-500 mb-6">{{ $t('auth.subtitle') }}</p>
 
         <UForm :schema="loginSchema" :state="state" class="space-y-4" @submit="onSubmit">
-          <UFormField name="email" label="Email" required>
+          <UFormField name="email" :label="$t('auth.email')" required>
             <UInput
               v-model="state.email"
               type="email"
@@ -82,7 +105,7 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
             />
           </UFormField>
 
-          <UFormField name="password" label="Kata sandi" required>
+          <UFormField name="password" :label="$t('auth.password')" required>
             <UInput
               v-model="state.password"
               type="password"
@@ -109,12 +132,12 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
             size="lg"
             :ui="{ base: 'rounded-xl font-bold' }"
             :loading="loading"
-            label="Masuk ke Dasbor"
+            :label="$t('auth.submit')"
           />
         </UForm>
 
         <p class="text-center text-sm text-slate-500 mt-6">
-          Belum punya akun? Hubungi pengurus RW.
+          {{ $t('auth.noAccount') }}
         </p>
       </div>
     </div>
