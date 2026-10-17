@@ -59,6 +59,7 @@ async function logout() {
     <UDashboardSidebar
       collapsible
       class="!border-0 bg-gradient-to-b from-emerald-950 to-emerald-700 text-emerald-50"
+      :ui="{ content: 'bg-gradient-to-b from-emerald-950 to-emerald-700 text-emerald-50' }"
     >
       <template #header="{ collapsed }">
         <div class="flex items-center gap-2 font-extrabold text-white">
