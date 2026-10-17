@@ -10,7 +10,7 @@ const client = useSupabaseClient<Database>()
 const toast = useToast()
 
 const { data: rows, refresh } = await useAsyncData('admin-users', async () => {
-  const { data } = await client.from('profiles').select('id,full_name,email,role,rt').order('created_at', { ascending: false }).limit(100)
+  const { data } = await client.from('profiles').select('id,full_name,email,role,rt,rw').order('created_at', { ascending: false }).limit(100)
   return data ?? []
 })
 
@@ -19,6 +19,7 @@ const columns: TableColumn<Row>[] = [
   { accessorKey: 'full_name', header: () => t('users.colName') },
   { accessorKey: 'email', header: () => t('users.colEmail') },
   { accessorKey: 'role', header: () => t('users.colRole') },
+  { accessorKey: 'rw', header: () => t('users.colRw') },
   { accessorKey: 'rt', header: () => t('users.colRt') },
 ]
 
@@ -36,9 +37,10 @@ const schema = z.object({
   password: z.string().min(8),
   role: z.enum(['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin']),
   rt: z.string().optional(),
+  rw: z.string().min(1).default('RW 05'),
 })
 type Schema = z.output<typeof schema>
-const state = reactive<Partial<Schema>>({ full_name: '', email: '', password: '', role: 'warga', rt: '' })
+const state = reactive<Partial<Schema>>({ full_name: '', email: '', password: '', role: 'warga', rt: '', rw: 'RW 05' })
 const creating = ref(false)
 
 const roleItems = computed(() => (['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin'] as const)
@@ -48,7 +50,7 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
   creating.value = true
   try {
     const res = await $fetch<{ email: string }>('/api/admin/users', { method: 'POST', body: event.data })
-    Object.assign(state, { full_name: '', email: '', password: '', role: 'warga', rt: '' })
+    Object.assign(state, { full_name: '', email: '', password: '', role: 'warga', rt: '', rw: 'RW 05' })
     toast.add({ title: t('users.created', { email: res.email }), color: 'success' })
     await refresh()
   }
@@ -89,6 +91,9 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
             </UFormField>
             <UFormField v-if="state.role === 'warga'" name="rt" :label="$t('users.rt')">
               <UInput v-model="state.rt" placeholder="RT 01…" class="w-full" />
+            </UFormField>
+            <UFormField name="rw" :label="$t('users.colRw')" required>
+              <UInput v-model="state.rw" placeholder="RW 05…" class="w-full" />
             </UFormField>
             <UButton type="submit" :loading="creating" :label="$t('users.create')" block />
           </UForm>

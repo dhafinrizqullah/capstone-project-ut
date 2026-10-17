@@ -8,6 +8,7 @@ const bodySchema = z.object({
   full_name: z.string().trim().min(1),
   role: z.enum(['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin']),
   rt: z.string().trim().nullable().optional(),
+  rw: z.string().trim().min(1).default('RW 05'),
 })
 
 export default defineEventHandler(async (event) => {
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
     full_name: body.full_name,
     role: body.role,
     rt: body.role === 'warga' ? (body.rt || null) : null,
+    rw: body.rw,
   })
   if (profileErr) throw createError({ statusCode: 400, message: profileErr.message })
 

@@ -17,7 +17,7 @@ const fmtTime = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'A
 
 const { data: dash, status } = await useAsyncData('dash', async () => {  const [depRes, profRes, ledgerRes, itemsRes, catsRes] = await Promise.all([
     client.from('deposits').select('id,resident_id,total_weight,total_value,deposited_at').eq('status', 'tercatat'),
-    client.from('profiles').select('id,full_name,rt').eq('role', 'warga'),
+    client.from('profiles').select('id,full_name,rt,rw').eq('role', 'warga'),
     client.from('savings_ledger').select('resident_id,type,amount'),
     client.from('deposit_items').select('deposit_id,category_id,weight_kg'),
     client.from('waste_categories').select('id,name'),
@@ -39,13 +39,28 @@ const { data: myRole } = await useAsyncData('dash-role', async () => {
   return data?.role ?? null
 })
 const rtFilter = ref('all')
+const rwFilter = ref('all')
 const rtOptions = computed(() => {
-  const rts = [...new Set([...(dash.value?.residents.values() ?? [])].map(p => p.rt ?? '?'))].sort()
+  const pool = [...(dash.value?.residents.values() ?? [])]
+    .filter(p => rwFilter.value === 'all' || (p.rw ?? '?') === rwFilter.value)
+  const rts = [...new Set(pool.map(p => p.rt ?? '?'))].sort()
   return [{ label: t('common.all'), value: 'all' }, ...rts.map(rt => ({ label: rt, value: rt }))]
 })
-const rtOf = (residentId: string) => dash.value?.residents.get(residentId)?.rt ?? '?'
-const inRt = (residentId: string) => rtFilter.value === 'all' || rtOf(residentId) === rtFilter.value
-const fDeposits = computed(() => (dash.value?.deposits ?? []).filter(d => inRt(d.resident_id)))
+const rwOptions = computed(() => {
+  const rws = [...new Set([...(dash.value?.residents.values() ?? [])].map(p => p.rw ?? '?'))].sort()
+  return [{ label: t('common.all'), value: 'all' }, ...rws.map(rw => ({ label: rw, value: rw }))]
+})
+watch(rwFilter, () => { rtFilter.value = 'all' })
+const scopeOf = (residentId: string) => {
+  const p = dash.value?.residents.get(residentId)
+  return { rw: p?.rw ?? '?', rt: p?.rt ?? '?' }
+}
+const inScope = (residentId: string) => {
+  const s = scopeOf(residentId)
+  return (rwFilter.value === 'all' || s.rw === rwFilter.value)
+    && (rtFilter.value === 'all' || s.rt === rtFilter.value)
+}
+const fDeposits = computed(() => (dash.value?.deposits ?? []).filter(d => inScope(d.resident_id)))
 const fDepositIds = computed(() => new Set(fDeposits.value.map(d => d.id)))
 const fItems = computed(() => (dash.value?.items ?? []).filter(i => fDepositIds.value.has(i.deposit_id)))
 const fLedger = computed(() => (dash.value?.ledger ?? []).filter(l => inRt(l.resident_id)))
@@ -53,7 +68,7 @@ const fLedger = computed(() => (dash.value?.ledger ?? []).filter(l => inRt(l.res
 const totalKg = computed(() => fDeposits.value.reduce((s, d) => s + Number(d.total_weight), 0))
 const balance = computed(() => fLedger.value.reduce((s, l) => s + (l.type === 'kredit' ? Number(l.amount) : -Number(l.amount)), 0))
 
-const fResidents = computed(() => [...(dash.value?.residents.values() ?? [])].filter(p => rtFilter.value === 'all' || (p.rt ?? '?') === rtFilter.value))
+const fResidents = computed(() => [...(dash.value?.residents.entries() ?? [])].filter(([id]) => inScope(id)).map(([, p]) => p))
 
 const kpis = computed(() => [
   { label: t('dash.kpiWaste'), value: `${fmtTon.value.format(totalKg.value / 1000)} ton` },
@@ -211,14 +226,22 @@ onUnmounted(() => charts.forEach(c => c.destroy()))
     <template #body>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <p class="text-sm text-muted">{{ $t('dash.subtitle') }}</p>
-        <USelect
-          v-if="myRole === 'superadmin'"
-          v-model="rtFilter"
-          :items="rtOptions"
-          value-key="value"
-          :aria-label="$t('users.colRt')"
-          class="w-44"
-        />
+        <div v-if="myRole === 'superadmin'" class="flex gap-2">
+          <USelect
+            v-model="rwFilter"
+            :items="rwOptions"
+            value-key="value"
+            :aria-label="$t('users.colRw')"
+            class="w-36"
+          />
+          <USelect
+            v-model="rtFilter"
+            :items="rtOptions"
+            value-key="value"
+            :aria-label="$t('users.colRt')"
+            class="w-36"
+          />
+        </div>
       </div>
 
       <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">

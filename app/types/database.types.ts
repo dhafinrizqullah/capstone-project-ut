@@ -134,6 +134,7 @@ export type Database = {
           id: string
           role: string
           rt: string | null
+          rw: string
         }
         Insert: {
           created_at?: string
@@ -142,6 +143,7 @@ export type Database = {
           id: string
           role: string
           rt?: string | null
+          rw?: string
         }
         Update: {
           created_at?: string
@@ -150,6 +152,7 @@ export type Database = {
           id?: string
           role?: string
           rt?: string | null
+          rw?: string
         }
         Relationships: []
       }
@@ -352,7 +355,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      my_role: { Args: never; Returns: string }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
