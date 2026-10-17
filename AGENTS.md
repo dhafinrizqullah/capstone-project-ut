@@ -37,6 +37,7 @@ pnpm lint
 Project skills live under `.agents/skills/`. **Always load and apply the relevant skills before doing any work; do not skip this step.** If multiple apply, load all of them.
 
 - Nuxt/Vue: `nuxt`, `vue`, `vue-best-practices`, `nuxt-ui`
+- Repo: `bank-sampah-rw` (this repo's own patterns — load it for every change here)
 - Supabase: `supabase`, `supabase-postgres-best-practices`
 - Design/UI: `frontend-design`, `web-design-guidelines`
 - Testing: `vitest`, `vue-testing-best-practices`
