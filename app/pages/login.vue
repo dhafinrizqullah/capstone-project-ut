@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-emerald-50">
-    <section class="relative bg-gradient-to-br from-emerald-900 to-emerald-700 text-emerald-50 flex flex-col justify-center p-10 lg:p-20 overflow-hidden">
-      <div class="absolute -right-20 -bottom-28 w-96 h-96 rounded-full bg-emerald-300/20 blur-sm" />
-      <div class="relative z-10 max-w-xl">
-        <div class="flex items-center gap-3 font-extrabold mb-8">
+  <div class="min-h-dvh lg:grid lg:grid-cols-[1.1fr_1fr]">
+    <section class="hidden lg:flex relative bg-gradient-to-br from-emerald-950 to-emerald-700 text-emerald-50 flex-col justify-center p-16 overflow-hidden">
+      <div class="absolute -right-24 -bottom-32 w-[28rem] h-[28rem] rounded-full bg-emerald-300/20 blur-sm" />
+      <div class="relative max-w-xl">
+        <div class="flex items-center gap-3 font-extrabold text-lg mb-8">
           <span class="w-10 h-10 rounded-xl bg-white/20 grid place-items-center">♻</span>
           <span>Bank Sampah RW Digital</span>
         </div>
-        <h1 class="text-4xl lg:text-6xl font-extrabold leading-tight tracking-tight mb-4">
+        <h1 class="text-5xl font-extrabold leading-tight tracking-tight mb-4">
           Pilah sampah dari rumah, pantau tabungan secara real-time.
         </h1>
         <p class="text-emerald-100 leading-relaxed max-w-md">
@@ -34,81 +34,58 @@
       </div>
     </section>
 
-    <section class="flex items-center justify-center p-6 lg:p-10">
-      <div class="w-full max-w-md bg-white border border-emerald-100 rounded-3xl shadow-2xl p-8">
-        <h2 class="text-2xl font-extrabold tracking-tight mb-1">Masuk</h2>
-        <p class="text-slate-500 mb-6">Gunakan akun email dan kata sandi sesuai peran.</p>
-
-        <form class="space-y-4" @submit.prevent="login">
-          <div>
-            <label class="block text-sm font-semibold mb-1.5" for="email">Email</label>
-            <input
-              id="email"
-              v-model="email"
-              type="email"
-              placeholder="nama@rw05.id"
-              required
-              class="w-full px-3 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-semibold mb-1.5" for="password">Kata sandi</label>
-            <input
-              id="password"
-              v-model="password"
-              type="password"
-              placeholder="••••••••"
-              required
-              class="w-full px-3 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            />
-          </div>
-
-          <div v-if="error" class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
-            {{ error }}
-          </div>
-
-          <button
-            type="submit"
-            class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-3 transition"
-            :disabled="loading"
-          >
-            {{ loading ? 'Memproses...' : 'Masuk ke Dasbor' }}
-          </button>
-        </form>
-
-        <p class="text-center text-sm text-slate-500 mt-6">
-          Belum punya akun? Hubungi pengurus RW.
-        </p>
-      </div>
-    </section>
+    <div class="flex items-center justify-center p-6 lg:p-10 bg-emerald-50">
+      <UPageCard class="w-full max-w-md">
+        <UAuthForm
+          :schema="schema"
+          :fields="fields"
+          title="Masuk"
+          description="Gunakan akun email dan kata sandi sesuai peran."
+          icon="i-lucide-recycle"
+          :submit="{ label: 'Masuk ke Dasbor', block: true }"
+          @submit="onSubmit"
+        >
+          <template #validation>
+            <UAlert v-if="error" color="error" variant="soft" :title="error" class="mb-4" />
+          </template>
+          <template #footer>
+            Belum punya akun? Hubungi pengurus RW.
+          </template>
+        </UAuthForm>
+      </UPageCard>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import * as z from 'zod'
+import type { FormSubmitEvent, AuthFormField } from '@nuxt/ui'
+
 definePageMeta({ layout: false })
 
 const supabase = useSupabaseClient()
-const email = ref('')
-const password = ref('')
-const loading = ref(false)
+
+const fields: AuthFormField[] = [
+  { name: 'email', type: 'email', label: 'Email', placeholder: 'nama@rw05.id', required: true },
+  { name: 'password', type: 'password', label: 'Kata sandi', placeholder: '••••••••', required: true },
+]
+
+const schema = z.object({
+  email: z.email('Email tidak valid'),
+  password: z.string().min(1, 'Kata sandi wajib diisi'),
+})
+
+type Schema = z.output<typeof schema>
+
 const error = ref('')
 
-async function login() {
-  loading.value = true
+async function onSubmit(event: FormSubmitEvent<Schema>) {
   error.value = ''
-
-  const { error: authError } = await supabase.auth.signInWithPassword({
-    email: email.value,
-    password: password.value,
-  })
-
-  loading.value = false
-
+  const { error: authError } = await supabase.auth.signInWithPassword(event.data)
   if (authError) {
     error.value = authError.message
     return
   }
-
   await navigateTo('/')
 }
 </script>
