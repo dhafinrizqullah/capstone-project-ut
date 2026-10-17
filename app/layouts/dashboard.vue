@@ -82,14 +82,35 @@ async function logout() {
 
       <template #footer="{ collapsed }">
         <div class="flex w-full flex-col gap-2">
-          <USelect
+          <!-- Segmented language switch: one tap, no dropdown for two options -->
+          <div
             v-if="!collapsed"
-            :model-value="locale"
-            :items="locales.map(l => ({ label: l.name, value: l.code }))"
+            class="flex items-center gap-1 rounded-xl bg-white/10 p-1"
+            role="group"
             :aria-label="$t('common.language')"
-            size="sm"
-            class="w-full"
-            @update:model-value="code => setLocale(code as 'id' | 'en')"
+          >
+            <UIcon name="i-lucide-globe" class="ml-1.5 size-4 shrink-0 text-emerald-100" aria-hidden="true" />
+            <button
+              v-for="l in locales"
+              :key="l.code"
+              :aria-pressed="locale === l.code"
+              :title="l.name"
+              class="flex-1 rounded-lg px-2 py-1 text-xs font-bold tracking-wide transition"
+              :class="locale === l.code ? 'bg-white text-emerald-800 shadow' : 'text-emerald-100 hover:text-white'"
+              @click="setLocale(l.code)"
+            >
+              {{ l.code.toUpperCase() }}
+            </button>
+          </div>
+          <UButton
+            v-else
+            icon="i-lucide-globe"
+            color="neutral"
+            variant="ghost"
+            class="text-white hover:bg-white/10"
+            :aria-label="$t('common.language')"
+            :title="`${$t('common.language')}: ${locale.toUpperCase()}`"
+            @click="setLocale(locale === 'id' ? 'en' : 'id')"
           />
           <div v-if="!collapsed" class="rounded-2xl bg-white/10 p-4 text-sm">
             <strong class="block truncate text-white">{{ profile?.full_name }}</strong>

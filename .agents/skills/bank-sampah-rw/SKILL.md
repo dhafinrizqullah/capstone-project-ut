@@ -62,7 +62,7 @@ New page checklist: `definePageMeta({ layout: 'dashboard', middleware: ['auth', 
 
 ## UI & brand
 
-- Brand: deep emerald (`emerald-950 → emerald-700` gradients, `emerald-50` surfaces, primary=`emerald` in `app/app.config.ts`). Source of truth: `temp-project-capstone/mockups/*.html` — match it before inventing styles.
+- Brand: deep emerald (`emerald-950 → emerald-700` gradients, `emerald-50` surfaces, primary=`emerald` in `app/app.config.ts`). Source of truth: `temp-project-capstone/mockups/*.html` — match it before inventing styles. Visual polish follows `web-design-engineer`.
 - One `layouts/dashboard.vue` (`UDashboardGroup` + emerald `UDashboardSidebar`, plain `NuxtLink` list, role-filtered menu). Content pages stay light; buttons/badges inherit emerald from the theme.
 - `UApp` wrapper required. Forms: `UForm` + `UFormField` + `zod`, `autocomplete` + `spellcheck=false` on auth fields, server errors in `UAlert[aria-live]`, `…` in placeholders.
 - Responsive: clean at 360px, no horizontal overflow; sidebar becomes drawer on mobile; multi-column input rows collapse (`sm:` prefix); tables in `overflow-x-auto`.

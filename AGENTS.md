@@ -39,10 +39,10 @@ Project skills live under `.agents/skills/`. **Always load and apply the relevan
 - Nuxt/Vue: `nuxt`, `vue`, `vue-best-practices`, `nuxt-ui`
 - Repo: `bank-sampah-rw` (this repo's own patterns — load it for every change here)
 - Supabase: `supabase`, `supabase-postgres-best-practices`
-- Design/UI: `frontend-design`, `web-design-guidelines`
+- Design/UI: `frontend-design`, `web-design-guidelines`, `web-design-engineer` (visual polish/redesign tasks)
 - Testing: `vitest`, `vue-testing-best-practices`
 
-When implementing or reviewing UI, the design skills above must be used. When touching database/auth, the Supabase skills must be used. For responsive work, apply the Responsive patterns in `nuxt-ui` conventions, the quality floor (`frontend-design`), and the Touch/Safe-Areas/Layout rules (`web-design-guidelines`). No additional design skill (e.g. web-design-engineer) — the brand is fixed by the mockups, `frontend-design` + `nuxt-ui` suffice.
+When implementing or reviewing UI, the design skills above must be used. When touching database/auth, the Supabase skills must be used. For responsive work, apply the Responsive patterns in `nuxt-ui` conventions, the quality floor (`frontend-design`), and the Touch/Safe-Areas/Layout rules (`web-design-guidelines`). For visual polish/redesign, follow `web-design-engineer` (declare the mini design decision first, verify with screenshots).
 
 ## Environment
 
