@@ -9,6 +9,8 @@ Web application built with **Nuxt 4** and **Supabase**.
 - Tailwind CSS via `@nuxt/ui`
 - Vitest
 
+Default application language: Indonesian.
+
 ## Getting started
 
 ```bash

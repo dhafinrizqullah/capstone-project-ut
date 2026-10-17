@@ -48,5 +48,6 @@ Project skills live under `.agents/skills/`. Load the relevant one before work:
 
 ## Notes
 
+- Default application language is Indonesian (i18n-ready).
 - No production secrets in the repo; use `.env` (gitignored).
 - Database changes go through Supabase migrations.
