@@ -63,7 +63,7 @@ const inScope = (residentId: string) => {
 const fDeposits = computed(() => (dash.value?.deposits ?? []).filter(d => inScope(d.resident_id)))
 const fDepositIds = computed(() => new Set(fDeposits.value.map(d => d.id)))
 const fItems = computed(() => (dash.value?.items ?? []).filter(i => fDepositIds.value.has(i.deposit_id)))
-const fLedger = computed(() => (dash.value?.ledger ?? []).filter(l => inRt(l.resident_id)))
+const fLedger = computed(() => (dash.value?.ledger ?? []).filter(l => inScope(l.resident_id)))
 
 const totalKg = computed(() => fDeposits.value.reduce((s, d) => s + Number(d.total_weight), 0))
 const balance = computed(() => fLedger.value.reduce((s, l) => s + (l.type === 'kredit' ? Number(l.amount) : -Number(l.amount)), 0))
@@ -105,7 +105,7 @@ const composition = computed(() => {
 const perRt = computed(() => {
   const byRt = new Map<string, number>()
   for (const dep of fDeposits.value) {
-    const rt = rtOf(dep.resident_id)
+    const rt = scopeOf(dep.resident_id).rt
     byRt.set(rt, (byRt.get(rt) ?? 0) + Number(dep.total_weight))
   }
   return [...byRt.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([rt, kg]) => ({ rt, kg }))

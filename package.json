@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:e2e": "e2e run",
     "db:seed": "node --env-file=.env scripts/seed-users.mjs",
+    "db:demo": "node --env-file=.env scripts/seed-demo.mjs",
     "db:push": "supabase db push",
     "postinstall": "nuxt prepare",
     "test:e2e": "e2e run"

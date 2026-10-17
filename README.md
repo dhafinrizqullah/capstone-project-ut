@@ -58,6 +58,7 @@ pnpm db:seed   # (dev) create/refresh the 4 demo accounts (one per role)
 - `pnpm lint` - lint code
 - `pnpm db:push` - apply pending Supabase migrations
 - `pnpm db:seed` - (dev) seed 4 demo accounts, one per role
+- `pnpm db:demo` - (dev) realistic demo dataset (residents, 6 months of weighings, withdrawals, shipments)
 
 ## License
 
