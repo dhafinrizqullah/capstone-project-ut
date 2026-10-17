@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
 import type { Database } from '~/types/database.types'
 
 const { locale, locales, setLocale, t } = useI18n()
@@ -18,8 +17,14 @@ const { data: profile } = await useAsyncData('my-profile', async () => {
 
 const role = computed(() => profile.value?.role)
 
-const items = computed<NavigationMenuItem[][]>(() => {
-  const main: NavigationMenuItem[] = []
+interface NavItem {
+  label: string
+  icon: string
+  to: string
+}
+
+const items = computed<NavItem[]>(() => {
+  const main: NavItem[] = []
   if (role.value === 'pengurus_rw') main.push({ label: t('nav.dashboard'), icon: 'i-lucide-chart-column', to: '/' })
   if (role.value === 'warga') main.push({ label: t('nav.resident'), icon: 'i-lucide-house', to: '/resident' })
   if (role.value === 'petugas') {
@@ -33,7 +38,7 @@ const items = computed<NavigationMenuItem[][]>(() => {
   if (role.value === 'pengepul') main.push({ label: t('nav.handover'), icon: 'i-lucide-clipboard-check', to: '/handover' })
   if (role.value === 'pengurus_rw') main.push({ label: t('nav.report'), icon: 'i-lucide-file-down', to: '/report' })
   if (role.value === 'superadmin') main.push({ label: t('nav.users'), icon: 'i-lucide-users', to: '/admin/users' })
-  return [main]
+  return main
 })
 
 async function logout() {
@@ -44,34 +49,64 @@ async function logout() {
 
 <template>
   <UDashboardGroup>
-    <UDashboardSidebar collapsible>
+    <UDashboardSidebar
+      collapsible
+      class="!border-0 bg-gradient-to-b from-emerald-950 to-emerald-700 text-emerald-50"
+    >
       <template #header="{ collapsed }">
-        <div class="flex items-center gap-2 font-extrabold">
-          <span class="grid size-8 place-items-center rounded-lg bg-primary/15" aria-hidden="true">♻</span>
+        <div class="flex items-center gap-2 font-extrabold text-white">
+          <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-white/20" aria-hidden="true">♻</span>
           <span v-if="!collapsed">{{ $t('brandShort') }}</span>
         </div>
       </template>
 
       <template #default="{ collapsed }">
-        <UNavigationMenu :collapsed="collapsed" :items="items" orientation="vertical" />
+        <nav :aria-label="$t('brandShort')">
+          <ul class="grid gap-1">
+            <li v-for="it in items" :key="it.to">
+              <NuxtLink
+                :to="it.to"
+                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-white/10 hover:text-white"
+                active-class="bg-white/20 !text-white"
+                :class="collapsed ? 'justify-center px-0' : ''"
+              >
+                <UIcon :name="it.icon" class="size-5 shrink-0" />
+                <span v-if="!collapsed" class="truncate">{{ it.label }}</span>
+              </NuxtLink>
+            </li>
+          </ul>
+        </nav>
       </template>
 
       <template #footer="{ collapsed }">
-        <div class="flex flex-col gap-2">
+        <div class="flex w-full flex-col gap-2">
           <USelect
+            v-if="!collapsed"
             :model-value="locale"
             :items="locales.map(l => ({ label: l.name, value: l.code }))"
             :aria-label="$t('common.language')"
             size="sm"
+            class="w-full"
             @update:model-value="code => setLocale(code as 'id' | 'en')"
           />
-          <p v-if="!collapsed" class="truncate text-sm font-semibold">{{ profile?.full_name }}</p>
+          <div v-if="!collapsed" class="rounded-2xl bg-white/10 p-4 text-sm">
+            <strong class="block truncate text-white">{{ profile?.full_name }}</strong>
+            <UButton
+              :label="$t('common.logout')"
+              color="neutral"
+              variant="ghost"
+              block
+              class="mt-3 !bg-white/20 text-white hover:!bg-white/30"
+              @click="logout"
+            />
+          </div>
           <UButton
-            :icon="collapsed ? 'i-lucide-log-out' : undefined"
-            :label="collapsed ? undefined : $t('common.logout')"
+            v-else
+            icon="i-lucide-log-out"
             color="neutral"
             variant="ghost"
-            block
+            class="text-white hover:bg-white/10"
+            :aria-label="$t('common.logout')"
             @click="logout"
           />
         </div>

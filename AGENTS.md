@@ -41,7 +41,7 @@ Project skills live under `.agents/skills/`. **Always load and apply the relevan
 - Design/UI: `frontend-design`, `web-design-guidelines`
 - Testing: `vitest`, `vue-testing-best-practices`
 
-When implementing or reviewing UI, the design skills above must be used. When touching database/auth, the Supabase skills must be used. For responsive work, apply the Responsive patterns in `nuxt-ui` conventions, the quality floor (`frontend-design`), and the Touch/Safe-Areas/Layout rules (`web-design-guidelines`).
+When implementing or reviewing UI, the design skills above must be used. When touching database/auth, the Supabase skills must be used. For responsive work, apply the Responsive patterns in `nuxt-ui` conventions, the quality floor (`frontend-design`), and the Touch/Safe-Areas/Layout rules (`web-design-guidelines`). No additional design skill (e.g. web-design-engineer) — the brand is fixed by the mockups, `frontend-design` + `nuxt-ui` suffice.
 
 ## Environment
 
@@ -53,5 +53,7 @@ When implementing or reviewing UI, the design skills above must be used. When to
 ## Notes
 
 - Default application language is Indonesian (i18n-ready).
+- Code is always English: comments, identifiers, commit messages, logs, and test names. Indonesian lives only in UI display strings (`i18n/locales/id.json`).
+- Visual brand: deep emerald greens (gradient `emerald-950 → emerald-700`, `emerald-50` surfaces). Source of truth: `temp-project-capstone/mockups/*.html` — match it before inventing new styles.
 - No production secrets in the repo; use `.env` (gitignored).
 - Database changes go through Supabase migrations.

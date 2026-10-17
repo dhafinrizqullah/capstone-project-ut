@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@nuxtjs/supabase', '@nuxt/eslint', '@nuxtjs/i18n'],
-  // ponytail: cookie Secure ditolak browser di http://localhost — hanya aktif di production (https)
+  // ponytail: browsers reject Secure cookies over http://localhost — enable only in production (https)
   supabase: {
     cookieOptions: {
       secure: process.env.NODE_ENV === 'production',
@@ -17,7 +17,7 @@ export default defineNuxtConfig({
     detectBrowserLanguage: false,
   },
   css: ['~/assets/css/main.css'],
-  // ponytail: mockup hanya desain terang — kunci light, dark mode menyusul bila diminta
+  // ponytail: light-only mockup — pin to light, dark mode if ever requested
   colorMode: {
     preference: 'light',
     storageKey: 'banksampah-color-mode',

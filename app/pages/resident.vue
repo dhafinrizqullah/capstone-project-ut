@@ -22,7 +22,7 @@ const { data, status, refresh } = await useAsyncData('resident', async () => {
     client.from('savings_ledger').select('type,amount'),
     client.from('withdrawals').select('id,amount,status,created_at').eq('resident_id', uid).order('created_at', { ascending: false }).limit(20),
   ])
-  // ledger RLS sudah membatasi ke milik sendiri
+  // ledger RLS already scopes rows to the owner
   return { cats: cats.data ?? [], deps: deps.data ?? [], ledger: ledger.data ?? [], wds: wds.data ?? [] }
 })
 

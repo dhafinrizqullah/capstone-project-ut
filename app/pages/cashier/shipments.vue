@@ -103,7 +103,7 @@ async function submit() {
                 class="w-full"
               />
             </UFormField>
-            <div class="grid grid-cols-[1fr_130px_auto] gap-2 items-end">
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_130px_auto] gap-2 sm:items-end">
               <UFormField name="category" :label="$t('ship.category')">
                 <USelectMenu
                   v-model="categoryId"

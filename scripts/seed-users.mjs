@@ -1,16 +1,16 @@
-// Seed akun demo per peran via Auth Admin API + upsert profiles.
-// ponytail: fetch mentah, tanpa dep baru. Dijalankan: pnpm db:seed (baca .env lokal).
-// DEV ONLY — jangan jalankan ke project production.
+// Seed demo accounts per role via the Auth Admin API + profile upserts.
+// ponytail: raw fetch, no new deps. Run: pnpm db:seed (reads local .env).
+// DEV ONLY — never run against production.
 
 const URL = (process.env.NUXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '')
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || ''
 
 if (!URL || !SERVICE_KEY) {
-  console.error('Butuh NUXT_PUBLIC_SUPABASE_URL dan SUPABASE_SERVICE_KEY di .env')
+  console.error('Missing NUXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env')
   process.exit(1)
 }
 
-// ponytail: kredensial demo, ganti password setelah login pertama
+// ponytail: demo credentials, rotate password after first login
 const PASSWORD = 'bank-sampah-123'
 const USERS = [
   { email: 'warga@rw05.id', full_name: 'Budi Santoso (Warga)', role: 'warga', rt: 'RT 01' },
@@ -41,20 +41,20 @@ for (const u of USERS) {
   let id
   if (res.ok) {
     id = (await res.json()).id
-    console.log(`buat: ${u.email}`)
+    console.log(`create: ${u.email}`)
   }
   else {
-    id = await findUserId(u.email) // sudah ada → pakai yang lama (rerunnable)
-    console.log(`pakai: ${u.email}`)
+    id = await findUserId(u.email) // already exists → reuse (rerunnable)
+    console.log(`reuse: ${u.email}`)
   }
-  if (!id) throw new Error(`gagal resolve id untuk ${u.email}`)
+  if (!id) throw new Error(`failed to resolve id for ${u.email}`)
 
   res = await fetch(`${URL}/rest/v1/profiles`, {
     method: 'POST',
     headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
     body: JSON.stringify({ id, email: u.email, full_name: u.full_name, role: u.role, rt: u.rt }),
   })
-  if (!res.ok) throw new Error(`gagal upsert profil ${u.email}: ${await res.text()}`)
+  if (!res.ok) throw new Error(`failed to upsert profile ${u.email}: ${await res.text()}`)
 }
 
-console.log(`\nSelesai. Login dengan salah satu email di atas / password: ${PASSWORD}`)
+console.log(`\nDone. Sign in with one of the emails above / password: ${PASSWORD}`)

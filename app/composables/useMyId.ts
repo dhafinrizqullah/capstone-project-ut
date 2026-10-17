@@ -1,5 +1,5 @@
-// ID user dari JWT claims (useSupabaseUser berisi claims, bukan objek user).
-// Semua halaman privat lewat middleware auth, jadi sub selalu ada saat setup.
+// User id from JWT claims (useSupabaseUser holds claims, not the user object).
+// Every private page passes through the auth middleware, so sub is always set in setup.
 export function useMyId(): string {
   const user = useSupabaseUser()
   return (user.value as unknown as { sub: string } | null)?.sub ?? ''

@@ -4,14 +4,14 @@ import type { Database } from '~/types/database.types'
 
 const bodySchema = z.object({
   email: z.email().trim().toLowerCase(),
-  password: z.string().min(8, 'Minimal 8 karakter'),
+  password: z.string().min(8, 'Minimum 8 characters'),
   full_name: z.string().trim().min(1),
   role: z.enum(['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin']),
   rt: z.string().trim().nullable().optional(),
 })
 
 export default defineEventHandler(async (event) => {
-  // Hanya superadmin — service key tidak pernah keluar dari server
+  // superadmin only — the service key never leaves the server
   const userClient = await serverSupabaseClient<Database>(event)
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) throw createError({ statusCode: 401, message: 'Unauthorized' })

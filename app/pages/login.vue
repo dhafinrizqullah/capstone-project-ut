@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { loginSchema, type LoginSchema } from '~/utils/login-schema'
+import { createLoginSchema, type LoginSchema } from '~/utils/login-schema'
 import type { Database } from '~/types/database.types'
 import { HOME_BY_ROLE } from '~/middleware/role'
 
 definePageMeta({ layout: false, middleware: 'guest' })
 
 const { t } = useI18n()
+const loginSchema = computed(() => createLoginSchema({ email: t('auth.emailInvalid'), password: t('auth.passwordRequired') }))
 const state = reactive<Partial<LoginSchema>>({ email: '', password: '' })
 
 const client = useSupabaseClient<Database>()
@@ -17,7 +18,7 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
   loading.value = true
   serverError.value = ''
   try {
-    // ponytail: pakai user dari respons sign-in langsung — tanpa roundtrip getUser yang gagal saat cookie Secure ditolak http
+    // ponytail: use the user from the sign-in response directly — skips the getUser roundtrip that fails when http rejects Secure cookies
     const { data: signIn, error: authError } = await client.auth.signInWithPassword({
       email: event.data.email,
       password: event.data.password,
@@ -27,7 +28,7 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
       return
     }
     const user = signIn.user
-    // ponytail: tunggu listener auth modul sinkron (INITIAL_SESSION bisa menimpa sesaat) sebelum navigasi
+    // ponytail: wait for the module auth listener to sync (INITIAL_SESSION can briefly overwrite) before navigating
     const userState = useSupabaseUser()
     const deadline = Date.now() + 5000
     while (!userState.value && Date.now() < deadline) await new Promise(r => setTimeout(r, 100))

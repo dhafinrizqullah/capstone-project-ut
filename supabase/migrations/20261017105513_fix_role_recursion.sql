@@ -1,7 +1,7 @@
--- Perbaikan rekursi RLS: public.my_role() membaca profiles, tapi policy
--- profiles_select_staff memanggil my_role() -> loop hingga stack overflow (54001).
--- Solusi sesuai checklist skill: fungsi DEFINER di skema non-expose + cek auth.uid()
--- di badan fungsi + EXECUTE hanya untuk authenticated.
+-- Fix RLS recursion: public.my_role() reads profiles, but policy
+-- profiles_select_staff calls my_role() -> loop until stack overflow (54001).
+-- Fix per the skill checklist: DEFINER function in a non-exposed schema + auth.uid()
+-- check in the function body + EXECUTE for authenticated only.
 
 create schema if not exists internal;
 revoke all on schema internal from public, anon, authenticated;
@@ -13,7 +13,7 @@ as $$ select role from public.profiles where id = (select auth.uid()) $$;
 revoke all on function internal.my_role() from public, anon, authenticated;
 grant execute on function internal.my_role() to authenticated;
 
--- Alihkan semua policy ke internal.my_role()
+-- Point every policy at internal.my_role()
 drop policy if exists "profiles_select_staff" on public.profiles;
 create policy "profiles_select_staff" on public.profiles for select
   to authenticated using (internal.my_role() in ('petugas', 'pengurus_rw', 'superadmin'));
@@ -99,5 +99,5 @@ drop policy if exists "categories_delete_staff" on public.waste_categories;
 create policy "categories_delete_staff" on public.waste_categories for delete
   to authenticated using (internal.my_role() = 'pengurus_rw');
 
--- Hapus fungsi lama pemicu rekursi
+-- Drop the old recursion-triggering function
 drop function if exists public.my_role();

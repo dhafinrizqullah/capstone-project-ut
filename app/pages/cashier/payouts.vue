@@ -23,7 +23,7 @@ const { data: rows, status, refresh } = await useAsyncData('payouts', async () =
   return data ?? []
 }, { watch: [filter] })
 
-// ponytail: filter dikerjakan di query saat data besar; di sini dataset kecil jadi saring lokal
+// ponytail: push filtering into the query once data grows; small dataset so filter locally
 const visible = computed(() => (rows.value ?? []).filter(r => filter.value === 'all' || r.status === filter.value))
 
 type Row = NonNullable<typeof rows.value>[number]

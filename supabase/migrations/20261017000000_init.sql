@@ -1,4 +1,4 @@
--- 0001_init: tabel inti + RLS + seed kategori (tahap awal, tabel transaksi menyusul)
+-- 0001_init: core tables + RLS + category seed (transaction tables arrive later)
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,

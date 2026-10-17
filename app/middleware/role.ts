@@ -1,6 +1,6 @@
 import type { Database } from '~/types/database.types'
 
-// ponytail: peta home per peran — satu-satunya tempat mapping terpusat
+// ponytail: central role-home map — single source of truth
 export const HOME_BY_ROLE: Record<string, string> = {
   warga: '/resident',
   petugas: '/cashier',
@@ -16,7 +16,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const allowed = (to.meta.allowedRoles ?? []) as string[]
   if (!allowed.length) return
 
-  // ponytail: useSupabaseUser berisi JWT claims (bukan objek user) — id ada di `sub`
+  // ponytail: useSupabaseUser holds JWT claims (not the user object) — id lives in `sub`
   const uid = (user.value as unknown as { sub: string }).sub
   if (!uid) return navigateTo('/login')
 

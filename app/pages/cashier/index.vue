@@ -53,7 +53,7 @@ async function submit() {
     return
   }
   saving.value = true
-  // Header dulu; kalau item gagal, header dibatalkan (kompensasi sederhana)
+  // Header first; if items fail, the header is voided (simple compensation)
   const { data: dep, error: depErr } = await client.from('deposits').insert({
     resident_id: residentId.value,
     operator_id: myId,
@@ -118,7 +118,7 @@ async function submit() {
               />
             </UFormField>
 
-            <div class="grid grid-cols-[1fr_130px_auto] gap-2 items-end">
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_130px_auto] gap-2 sm:items-end">
               <UFormField name="category" :label="$t('cashier.category')">
                 <USelectMenu
                   v-model="categoryId"

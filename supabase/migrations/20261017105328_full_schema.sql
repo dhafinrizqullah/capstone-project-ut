@@ -1,22 +1,22 @@
--- Skema penuh: transaksi bank sampah + RLS per peran.
--- Aturan tipe: teks -> TEXT, uang/berat -> numeric, waktu -> timestamptz.
+-- Full schema: waste-bank transactions + per-role RLS.
+-- Type rules: text -> TEXT, money/weight -> numeric, time -> timestamptz.
 
--- 1. profiles: tambah peran superadmin
+-- 1. profiles: add the superadmin role
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles
   add constraint profiles_role_check
   check (role in ('warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin'));
 
--- Helper peran pemanggil (invoker: hanya membaca baris milik sendiri)
+-- Caller-role helper (invoker: reads only its own row)
 create or replace function public.my_role()
 returns text language sql stable security invoker set search_path = public
 as $$ select role from public.profiles where id = (select auth.uid()) $$;
 
--- Petugas/pengurus butuh melihat daftar warga (kasir, validasi)
+-- Staff (petugas/pengurus) need to see the resident list (cashier, validation)
 create policy "profiles_select_staff" on public.profiles for select
   to authenticated using (public.my_role() in ('petugas', 'pengurus_rw', 'superadmin'));
 
--- 2. deposits: satu penimbangan (header)
+-- 2. deposits: one weighing event (header)
 create table public.deposits (
   id uuid primary key default gen_random_uuid(),
   resident_id uuid not null references public.profiles (id),
@@ -40,7 +40,7 @@ create policy "deposits_update_petugas" on public.deposits for update
 create index deposits_resident_idx on public.deposits (resident_id);
 create index deposits_operator_idx on public.deposits (operator_id);
 
--- 3. deposit_items: rincian per kategori (harga di-snapshot)
+-- 3. deposit_items: per-category lines (price snapshotted)
 create table public.deposit_items (
   id uuid primary key default gen_random_uuid(),
   deposit_id uuid not null references public.deposits (id) on delete cascade,
@@ -63,7 +63,7 @@ create policy "deposit_items_insert_petugas" on public.deposit_items for insert
   to authenticated with check (public.my_role() = 'petugas');
 create index deposit_items_deposit_idx on public.deposit_items (deposit_id);
 
--- 4. savings_ledger: mutasi tabungan (saldo = SUM, tanpa kolom saldo)
+-- 4. savings_ledger: balance mutations (balance = SUM, no balance column)
 create table public.savings_ledger (
   id uuid primary key default gen_random_uuid(),
   resident_id uuid not null references public.profiles (id),
@@ -81,7 +81,7 @@ create policy "ledger_insert_petugas" on public.savings_ledger for insert
   to authenticated with check (public.my_role() = 'petugas');
 create index ledger_resident_idx on public.savings_ledger (resident_id);
 
--- 5. withdrawals: pengajuan penarikan warga
+-- 5. withdrawals: resident payout requests
 create table public.withdrawals (
   id uuid primary key default gen_random_uuid(),
   resident_id uuid not null references public.profiles (id),
@@ -105,7 +105,7 @@ create policy "withdrawals_update_petugas" on public.withdrawals for update
   with check (public.my_role() = 'petugas');
 create index withdrawals_resident_idx on public.withdrawals (resident_id);
 
--- 6. shipments: pengiriman ke pengepul (nota otomatis SJ-000001)
+-- 6. shipments: outbound loads to collectors (auto note SJ-000001)
 create table public.shipments (
   id bigint generated always as identity primary key,
   note_number text generated always as ('SJ-' || lpad(id::text, 6, '0')) stored unique,
@@ -158,7 +158,7 @@ create policy "shipment_items_insert_petugas" on public.shipment_items for inser
   to authenticated with check (public.my_role() = 'petugas');
 create index shipment_items_shipment_idx on public.shipment_items (shipment_id);
 
--- 8. waste_categories: kelola harga oleh petugas/pengurus (select sudah ada)
+-- 8. waste_categories: price management by staff (select already exists)
 create policy "categories_insert_staff" on public.waste_categories for insert
   to authenticated with check (public.my_role() in ('petugas', 'pengurus_rw'));
 create policy "categories_update_staff" on public.waste_categories for update
@@ -168,7 +168,7 @@ create policy "categories_update_staff" on public.waste_categories for update
 create policy "categories_delete_staff" on public.waste_categories for delete
   to authenticated using (public.my_role() = 'pengurus_rw');
 
--- 9. Ekspos Data API + default untuk tabel berikutnya
+-- 9. Data API exposure + defaults for future tables
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 alter default privileges in schema public
