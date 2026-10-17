@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import * as z from 'zod'
+import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Database } from '~/types/database.types'
 
 definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['superadmin'] })
@@ -12,21 +14,30 @@ const { data: areaRows, refresh } = await useAsyncData('admin-areas', async () =
   return data ?? []
 })
 
-const newRw = ref('')
-const newRt = ref('')
+const open = ref(false)
+const schema = z.object({
+  rw: z.string().trim().min(1),
+  rt: z.string().trim().min(1),
+})
+type Schema = z.output<typeof schema>
+const state = reactive<Schema>({ rw: '', rt: '' })
 const saving = ref(false)
 
-async function addArea() {
-  if (!newRw.value.trim() || !newRt.value.trim()) return
+function openNew() {
+  state.rw = ''
+  state.rt = ''
+  open.value = true
+}
+
+async function onSave(event: FormSubmitEvent<Schema>) {
   saving.value = true
-  const { error } = await client.from('areas').insert({ rw: newRw.value.trim(), rt: newRt.value.trim() })
+  const { error } = await client.from('areas').insert(event.data)
   saving.value = false
   if (error) {
-    toast.add({ title: error.code === '23505' ? `${newRw.value} · ${newRt.value}` : error.message, color: 'error' })
+    toast.add({ title: error.code === '23505' ? `${event.data.rw} · ${event.data.rt}` : error.message, color: 'error' })
     return
   }
-  newRw.value = ''
-  newRt.value = ''
+  open.value = false
   toast.add({ title: t('areas.saved'), color: 'success' })
   await refresh()
 }
@@ -49,23 +60,17 @@ async function deleteArea(id: number) {
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
+        <template #right>
+          <UButton icon="i-lucide-plus" :label="$t('areas.add')" @click="openNew" />
+        </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
       <p class="text-sm text-muted mb-4">{{ $t('areas.subtitle') }}</p>
       <UCard>
-        <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 sm:items-end mb-3">
-          <UFormField name="newRw" :label="$t('areas.rw')">
-            <UInput v-model="newRw" placeholder="RW 05…" class="w-full" />
-          </UFormField>
-          <UFormField name="newRt" :label="$t('areas.rt')">
-            <UInput v-model="newRt" placeholder="RT 01…" class="w-full" />
-          </UFormField>
-          <UButton icon="i-lucide-plus" :label="$t('areas.add')" :loading="saving" @click="addArea" />
-        </div>
         <ul class="grid gap-1">
-          <li v-for="a in areaRows ?? []" :key="a.id" class="flex items-center justify-between gap-2 text-sm py-1.5 border-t border-muted">
+          <li v-for="a in areaRows ?? []" :key="a.id" class="flex items-center justify-between gap-2 text-sm py-1.5 border-t border-muted first:border-t-0">
             <span class="font-semibold">{{ a.rw }} · {{ a.rt }}</span>
             <UButton
               icon="i-lucide-trash"
@@ -79,6 +84,23 @@ async function deleteArea(id: number) {
         </ul>
         <p v-if="!areaRows?.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
       </UCard>
+
+      <UModal v-model:open="open" :title="$t('areas.add')" :ui="{ footer: 'justify-end' }">
+        <template #body>
+          <UForm id="area-form" :schema="schema" :state="state" class="space-y-4" @submit="onSave">
+            <UFormField name="rw" :label="$t('areas.rw')" required>
+              <UInput v-model="state.rw" placeholder="RW 05…" class="w-full" />
+            </UFormField>
+            <UFormField name="rt" :label="$t('areas.rt')" required>
+              <UInput v-model="state.rt" placeholder="RT 01…" class="w-full" />
+            </UFormField>
+          </UForm>
+        </template>
+        <template #footer="{ close }">
+          <UButton :label="$t('common.cancel')" color="neutral" variant="outline" @click="close" />
+          <UButton type="submit" form="area-form" :label="$t('areas.add')" :loading="saving" />
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>
