@@ -16,6 +16,21 @@ const CANVAS = `(() => {
   }
   return { painted, hash };
 })()`;
+/**
+ * Records the colour-mode switch window from inside the page. The window lasts
+ * 320ms, which a driver round trip can outlive under load (a tap alone has been
+ * seen at 660ms), so the transition is sampled by the observer that sees the
+ * class appear, never by a later read: an open window pushes the computed
+ * transition property, the closing one pushes ''.
+ */
+const RECORD_SWITCH = `(() => {
+  window.__switchLog = [];
+  new MutationObserver(() => {
+    const open = document.documentElement.classList.contains('theme-switching');
+    window.__switchLog.push(open ? getComputedStyle(document.body).transitionProperty : '');
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  return true;
+})()`;
 
 describe('dark mode', () => {
   test('the sidebar toggle flips the theme, and the choice survives a reload', async ({ app, screen, browser }) => {
@@ -52,16 +67,21 @@ describe('dark mode', () => {
   test('the flip tweens its colours instead of snapping', async ({ app, screen, browser }) => {
     await signInAs(app, screen, browser, 'superadmin');
 
+    await browser.evaluate(RECORD_SWITCH);
     await screen.getByRole('button', 'Beralih ke mode gelap').tap();
-    // the switch window is open right after the flip, and colours tween in it
     await expect(await browser.evaluate(IS_DARK)).toBe(true);
-    await expect(await browser.evaluate(`document.documentElement.classList.contains('theme-switching')`)).toBe(true);
-    const tween = await browser.evaluate(`getComputedStyle(document.body).transitionProperty`) as string;
-    await expect(tween).toMatch(/background-color/);
-    await expect(tween).toMatch(/color/);
+
+    // the switch window opened with the flip, and colours tween inside it
+    const log = await browser.evaluate(`window.__switchLog`) as string[];
+    const open = log.filter(Boolean);
+    await expect(open.length).toBeGreaterThan(0);
+    await expect(open[0]).toMatch(/background-color/);
+    await expect(open[0]).toMatch(/color/);
 
     // and it closes itself, so ordinary hovers stay instant
     await settle(600);
+    const closed = await browser.evaluate(`window.__switchLog`) as string[];
+    await expect(closed.at(-1)).toBe('');
     await expect(await browser.evaluate(`document.documentElement.classList.contains('theme-switching')`)).toBe(false);
     await expect(await browser.evaluate(`getComputedStyle(document.body).transitionProperty`)).not.toMatch(/background-color/);
   });
