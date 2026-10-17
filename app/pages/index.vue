@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
+import type { Chart as ChartJS } from 'chart.js'
 
 definePageMeta({ titleKey: 'dash.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengurus_rw', 'superadmin'] })
 
@@ -142,7 +143,7 @@ const recent = computed(() => {
 const trendCanvas = ref<HTMLCanvasElement | null>(null)
 const categoryCanvas = ref<HTMLCanvasElement | null>(null)
 const rtCanvas = ref<HTMLCanvasElement | null>(null)
-let charts: { destroy(): void }[] = []
+let charts: ChartJS[] = []
 
 // Chart.js paints on canvas: read the theme's own variables so the grid and
 // labels stay readable in both modes (values resolve per mode, not per class).
@@ -151,13 +152,19 @@ function cssColor(name: string, fallback: string) {
   return value || fallback
 }
 
+function themeTokens() {
+  return {
+    grid: cssColor('--ui-border-muted', '#e8f0ea'),
+    label: cssColor('--ui-text-muted', '#64748b'),
+  }
+}
+
 async function drawCharts() {
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
   charts.forEach(c => c.destroy())
   charts = []
-  const grid = cssColor('--ui-border-muted', '#e8f0ea')
-  const label = cssColor('--ui-text-muted', '#64748b')
+  const { grid, label } = themeTokens()
   if (trendCanvas.value) {
     charts.push(new Chart(trendCanvas.value, {
       type: 'line',
@@ -227,11 +234,34 @@ async function drawCharts() {
   }
 }
 
+// ponytail: chart.js types every scale as a union; these two are all a mode
+// flip needs to repaint
+type ThemedAxis = { grid?: { color?: string }, ticks?: { color?: string } }
+
+// A mode flip only changes the grid/label colours, so repaint the charts we
+// already have. Rebuilding them cleared the canvas for a frame and replayed
+// Chart.js' entry animation — that was the blink on this page.
+function repaintCharts() {
+  const { grid, label } = themeTokens()
+  for (const chart of charts) {
+    const scales = (chart.options.scales ?? {}) as Record<string, ThemedAxis | undefined>
+    for (const id of ['x', 'y']) {
+      const axis = scales[id]
+      if (axis?.grid) axis.grid.color = grid
+      if (axis?.ticks) axis.ticks.color = label
+    }
+    const legend = chart.options.plugins?.legend
+    if (legend?.labels) legend.labels.color = label
+    // 'none': swap the colours without animating the whole chart again
+    chart.update('none')
+  }
+}
+
 let themeObserver: MutationObserver | null = null
 onMounted(() => {
   drawCharts()
   // the colour mode flips a class on <html>: repaint the canvases with the new vars
-  themeObserver = new MutationObserver(drawCharts)
+  themeObserver = new MutationObserver(repaintCharts)
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 })
 watch([trend, composition, perRt], drawCharts)

@@ -4,6 +4,18 @@ import { openPage, settle, signInAs } from './helpers';
 
 const CARD_BG = `getComputedStyle(document.querySelector('[data-slot="body"] article')).backgroundColor`;
 const IS_DARK = `document.documentElement.classList.contains('dark')`;
+/** Painted-pixel count + colour hash of the first dashboard canvas (the trend chart). */
+const CANVAS = `(() => {
+  const c = document.querySelector('[data-slot="body"] canvas');
+  if (!c) return null;
+  const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  let painted = 0, hash = 2166136261;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3]) painted++;
+    hash = Math.imul(hash ^ px[i] ^ (px[i + 1] << 8) ^ (px[i + 2] << 16), 16777619) >>> 0;
+  }
+  return { painted, hash };
+})()`;
 
 describe('dark mode', () => {
   test('the sidebar toggle flips the theme, and the choice survives a reload', async ({ app, screen, browser }) => {
@@ -52,5 +64,28 @@ describe('dark mode', () => {
     await settle(600);
     await expect(await browser.evaluate(`document.documentElement.classList.contains('theme-switching')`)).toBe(false);
     await expect(await browser.evaluate(`getComputedStyle(document.body).transitionProperty`)).not.toMatch(/background-color/);
+  });
+
+  test('the flip repaints the dashboard charts and leaves them on screen', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'superadmin');
+    // chart.js is imported lazily, so the canvas fills in a moment after the page
+    let light: { painted: number, hash: number } | null = null;
+    for (let i = 0; i < 40 && !light?.painted; i++) {
+      await settle(250);
+      light = await browser.evaluate(CANVAS) as { painted: number, hash: number } | null;
+    }
+    await expect(light?.painted).toBeGreaterThan(0);
+
+    await screen.getByRole('button', 'Beralih ke mode gelap').tap();
+    await settle(600);
+    const dark = await browser.evaluate(CANVAS) as { painted: number, hash: number } | null;
+
+    // the canvas is still painted (a rebuild leaves it blank for a frame) ...
+    await expect(dark?.painted).toBeGreaterThan(0);
+    // ... and its grid and labels now use the dark theme's colours
+    await expect(dark?.hash).not.toBe(light?.hash);
+
+    await screen.getByRole('button', 'Beralih ke mode terang').tap();
+    await settle(600);
   });
 });
