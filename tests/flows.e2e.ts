@@ -1,6 +1,25 @@
 import { describe, test } from '@e2e-dev/web';
 import { expect } from 'e2e';
+import type { Screen } from 'e2e';
 import { openPage, settle, signInAs } from './helpers';
+
+// Every "Aktivitas Terbaru" row as one string (name · RW · RT · category · value).
+const RECENT_ROWS = `[...document.querySelectorAll('[data-slot="body"] table tbody tr')]
+  .map(r => r.innerText.replace(/\\s+/g, ' ')).join(' ~ ')`;
+
+/**
+ * Renames the category row matching `from` through the Master Harga modal.
+ * Missing rows are a no-op so a crashed run can re-normalise itself.
+ */
+async function renameCategory(screen: Screen, from: RegExp, to: string) {
+  await expect(screen.getByText('Plastik PET')).toBeVisible(); // seed guarantees this cell
+  const row = screen.getByRole('row', from);
+  if (!await row.count()) return;
+  await row.getByRole('button', 'Ubah kategori').tap();
+  await screen.getByLabel('Nama kategori').fill(to);
+  await screen.getByRole('button', 'Simpan').tap();
+  await expect(screen.getByText('Harga tersimpan.')).toBeVisible();
+}
 
 describe('petugas', () => {
   test('records a weighing and credits the resident', async ({ app, screen, browser }) => {
@@ -162,5 +181,48 @@ describe('superadmin', () => {
 
     await screen.getByRole('button', 'RW 99 RT 99').tap();
     await expect(screen.getByText('Wilayah dihapus.')).toBeVisible();
+  });
+});
+
+describe('history is frozen', () => {
+  test('renaming a category does not rewrite past weighings', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'petugas');
+
+    // normalise a crashed run first: the probe rename is only ever ours
+    await openPage(app, browser, '/cashier/prices');
+    await renameCategory(screen, /Besi Beku/, 'Logam');
+
+    // weigh 3 kg of Logam: it becomes the newest activity row
+    await openPage(app, browser, '/cashier');
+    await screen.getByLabel('Warga (nasabah)').tap();
+    await screen.getByRole('option', /Budi Santoso/).tap();
+    await screen.getByLabel('Kategori').tap();
+    await screen.getByRole('option', /Logam/).tap();
+    await screen.getByLabel('Berat (kg)').fill('3');
+    await screen.getByRole('button', 'Tambah ke daftar').tap();
+    await screen.getByRole('button', 'Simpan Penimbangan').tap();
+    await expect(screen.getByText('Penimbangan tersimpan, saldo warga bertambah.')).toBeVisible();
+
+    // the dashboard labels it with the master's name of the day
+    await screen.getByRole('button', 'Keluar').tap();
+    await expect(browser).toHaveURL('/login', { timeout: 60000 });
+    await signInAs(app, screen, browser, 'superadmin');
+    await openPage(app, browser, '/');
+    await expect(screen.getByText(/Logam/).first()).toBeVisible();
+
+    // rename the master, then look at history again
+    await openPage(app, browser, '/cashier/prices');
+    await renameCategory(screen, /Logam/, 'Besi Beku');
+
+    await openPage(app, browser, '/');
+    await expect(screen.getByText('Aktivitas Terbaru')).toBeVisible();
+    const rows = await browser.evaluate(RECENT_ROWS) as string;
+    await expect(rows).toMatch(/Budi Santoso/);
+    await expect(rows).toMatch(/Logam/);
+    await expect(rows).not.toMatch(/Besi Beku/);
+
+    // restore the master
+    await openPage(app, browser, '/cashier/prices');
+    await renameCategory(screen, /Besi Beku/, 'Logam');
   });
 });

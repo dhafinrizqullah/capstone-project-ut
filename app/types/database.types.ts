@@ -63,6 +63,7 @@ export type Database = {
       deposit_items: {
         Row: {
           category_id: number
+          category_name: string
           deposit_id: string
           id: string
           price_per_kg: number
@@ -71,6 +72,7 @@ export type Database = {
         }
         Insert: {
           category_id: number
+          category_name: string
           deposit_id: string
           id?: string
           price_per_kg: number
@@ -79,6 +81,7 @@ export type Database = {
         }
         Update: {
           category_id?: number
+          category_name?: string
           deposit_id?: string
           id?: string
           price_per_kg?: number
@@ -223,6 +226,7 @@ export type Database = {
       shipment_items: {
         Row: {
           category_id: number
+          category_name: string
           id: string
           price_per_kg: number
           shipment_id: number
@@ -231,6 +235,7 @@ export type Database = {
         }
         Insert: {
           category_id: number
+          category_name: string
           id?: string
           price_per_kg: number
           shipment_id: number
@@ -239,6 +244,7 @@ export type Database = {
         }
         Update: {
           category_id?: number
+          category_name?: string
           id?: string
           price_per_kg?: number
           shipment_id?: number

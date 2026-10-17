@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['petugas'] })
+definePageMeta({ titleKey: 'cashier.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['petugas'] })
 
 const { locale, t } = useI18n()
 const myId = useMyId()
@@ -80,7 +80,7 @@ async function submit() {
     return
   }
   const { error: itemsErr } = await client.from('deposit_items').insert(
-    items.value.map(i => ({ deposit_id: dep.id, category_id: i.categoryId, weight_kg: i.weightKg, price_per_kg: i.price, value: i.value })),
+    items.value.map(i => ({ deposit_id: dep.id, category_id: i.categoryId, category_name: i.name, weight_kg: i.weightKg, price_per_kg: i.price, value: i.value })),
   )
   if (itemsErr) {
     await client.from('deposits').update({ status: 'dibatalkan' }).eq('id', dep.id)

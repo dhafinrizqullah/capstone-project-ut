@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengepul'] })
+definePageMeta({ titleKey: 'handover.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengepul'] })
 
 const { locale, t } = useI18n()
 const myId = useMyId()
@@ -13,8 +13,7 @@ const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency
 const fmtKg = (v: number) => `${new Intl.NumberFormat(tag.value, { maximumFractionDigits: 1 }).format(v)} kg`
 const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
 
-const { data: ships, status, refresh } = await useAsyncData('handover', async () => {
-  // ponytail: superadmin sees every shipment (global scope); collectors see only their own
+const { data: ships, status, refresh } = await useAsyncData('handover', async () => {  // ponytail: superadmin sees every shipment (global scope); collectors see only their own
   const { data: me } = await client.from('profiles').select('role').eq('id', myId).maybeSingle()
   let q = client
     .from('shipments')
@@ -35,10 +34,11 @@ async function toggle(id: number) {
   if (expanded.value === id && !itemsCache.value[id]) {
     const { data } = await client
       .from('shipment_items')
-      .select('weight_kg,value,category:waste_categories!shipment_items_category_id_fkey(name)')
+      .select('category_name,weight_kg,value')
       .eq('shipment_id', id)
+    // the line carries its own name: renaming the master never rewrites a note
     itemsCache.value[id] = (data ?? []).map(i => ({
-      name: (i.category as unknown as { name: string } | null)?.name ?? '-',
+      name: i.category_name,
       weightKg: Number(i.weight_kg),
       value: Number(i.value),
     }))

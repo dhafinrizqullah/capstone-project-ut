@@ -3,7 +3,7 @@ import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['warga'] })
+definePageMeta({ titleKey: 'resident.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['warga'] })
 
 const { locale, t } = useI18n()
 const uid = useMyId()

@@ -4,7 +4,7 @@ import { createLoginSchema, type LoginSchema } from '~/utils/login-schema'
 import type { Database } from '~/types/database.types'
 import { HOME_BY_ROLE } from '~/middleware/role'
 
-definePageMeta({ layout: false, middleware: 'guest' })
+definePageMeta({ titleKey: 'auth.title', layout: false, middleware: 'guest' })
 
 const { t } = useI18n()
 const loginSchema = computed(() => createLoginSchema({ email: t('auth.emailInvalid'), password: t('auth.passwordRequired') }))
@@ -51,12 +51,14 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
 </script>
 
 <template>
-  <div class="min-h-dvh lg:grid lg:grid-cols-[1.1fr_1fr]">
-    <section class="hidden lg:flex relative bg-gradient-to-br from-emerald-950 to-emerald-700 text-emerald-50 flex-col justify-center p-16 overflow-hidden">
+  <div class="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
+    <section class="relative hidden bg-gradient-to-br from-emerald-950 to-emerald-700 text-emerald-50 lg:flex flex-col justify-center overflow-hidden p-10 xl:p-16">
       <div class="absolute -right-24 -bottom-32 w-[28rem] h-[28rem] rounded-full bg-emerald-300/20 blur-sm" aria-hidden="true" />
       <div class="relative max-w-xl">
         <div class="flex items-center gap-3 font-extrabold text-lg mb-8">
-          <span class="w-10 h-10 rounded-xl bg-white/20 grid place-items-center" aria-hidden="true">♻</span>
+          <span class="grid size-10 place-items-center rounded-xl bg-white/20" aria-hidden="true">
+            <UIcon name="i-lucide-recycle" class="size-5" />
+          </span>
           <span>{{ $t('brand') }}</span>
         </div>
         <h1 class="text-5xl font-extrabold leading-tight tracking-tight mb-4 text-balance">
@@ -86,8 +88,16 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
       </div>
     </section>
 
-    <div class="flex items-center justify-center p-6 lg:p-10 bg-emerald-50">
-      <div class="w-full max-w-md bg-white border border-emerald-100 rounded-3xl shadow-2xl p-8">
+    <div class="flex items-center justify-center bg-emerald-50 p-5 sm:p-6 lg:p-10">
+      <div class="w-full max-w-md bg-white border border-emerald-100 rounded-3xl shadow-2xl p-6 sm:p-8">
+        <!-- the hero carries the brand from lg up; smaller screens keep a compact mark -->
+        <div class="mb-6 flex items-center gap-2.5 lg:hidden">
+          <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white" aria-hidden="true">
+            <UIcon name="i-lucide-recycle" class="size-5" />
+          </span>
+          <span class="text-sm font-extrabold text-emerald-950">{{ $t('brand') }}</span>
+        </div>
+
         <h2 class="text-2xl font-extrabold tracking-tight mb-1 text-slate-900">{{ $t('auth.title') }}</h2>
         <p class="text-slate-500 mb-6">{{ $t('auth.subtitle') }}</p>
 

@@ -3,7 +3,7 @@ import * as z from 'zod'
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['petugas', 'pengurus_rw'] })
+definePageMeta({ titleKey: 'prices.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['petugas', 'pengurus_rw'] })
 
 const { locale, t } = useI18n()
 const client = useSupabaseClient<Database>()

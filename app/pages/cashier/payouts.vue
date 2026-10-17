@@ -2,7 +2,7 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['petugas'] })
+definePageMeta({ titleKey: 'payouts.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['petugas'] })
 
 const { locale, t } = useI18n()
 const myId = useMyId()

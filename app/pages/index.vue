@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengurus_rw', 'superadmin'] })
+definePageMeta({ titleKey: 'dash.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengurus_rw', 'superadmin'] })
 
 const { locale, t } = useI18n()
 const client = useSupabaseClient<Database>()
@@ -15,12 +15,11 @@ const fmtKg = (v: number) => `${fmtInt.value.format(v)} kg`
 const fmtMonth = computed(() => new Intl.DateTimeFormat(tag.value, { month: 'short' }))
 const fmtTime = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
 
-const { data: dash, status } = await useAsyncData('dash', async () => {  const [depRes, profRes, ledgerRes, itemsRes, catsRes] = await Promise.all([
+const { data: dash, status } = await useAsyncData('dash', async () => {  const [depRes, profRes, ledgerRes, itemsRes] = await Promise.all([
     client.from('deposits').select('id,resident_id,total_weight,total_value,deposited_at').eq('status', 'tercatat'),
     client.from('profiles').select('id,full_name,area:areas!profiles_area_id_fkey(rw,rt)').eq('role', 'warga'),
     client.from('savings_ledger').select('resident_id,type,amount'),
-    client.from('deposit_items').select('deposit_id,category_id,weight_kg'),
-    client.from('waste_categories').select('id,name'),
+    client.from('deposit_items').select('deposit_id,category_name,weight_kg'),
   ])
   return {
     deposits: depRes.data ?? [],
@@ -31,7 +30,6 @@ const { data: dash, status } = await useAsyncData('dash', async () => {  const [
     }])),
     ledger: ledgerRes.data ?? [],
     items: itemsRes.data ?? [],
-    catNames: new Map((catsRes.data ?? []).map(c => [c.id, c.name])),
   }
 })
 
@@ -100,8 +98,8 @@ const trend = computed(() => {
 const composition = computed(() => {
   const byCat = new Map<string, number>()
   for (const it of fItems.value) {
-    const name = dash.value?.catNames.get(it.category_id) ?? '?'
-    byCat.set(name, (byCat.get(name) ?? 0) + Number(it.weight_kg))
+    // snapshot name: a renamed master does not rewrite past composition
+    byCat.set(it.category_name, (byCat.get(it.category_name) ?? 0) + Number(it.weight_kg))
   }
   return [...byCat.entries()].map(([name, kg]) => ({ name, kg }))
 })
@@ -130,7 +128,7 @@ const recent = computed(() => {
       time: fmtTime.value.format(new Date(d.deposited_at)),
       // ponytail: person first, then area hierarchy (RW before RT)
       name: prof ? `${prof.full_name} · ${prof.rw ?? '?'} · ${prof.rt ?? '?'}` : '?',
-      type: first ? (dash.value?.catNames.get(first.category_id) ?? '-') : '-',
+      type: first ? first.category_name : '-',
       weight: fmtKg(Number(d.total_weight)),
       value: fmtRp.value.format(Number(d.total_value)),
     }

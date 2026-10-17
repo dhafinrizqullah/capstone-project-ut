@@ -85,6 +85,19 @@ for (const role of Object.keys(ROLES) as RoleKey[]) {
   });
 }
 
+describe('document title', () => {
+  test('follows the page and the active locale', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'superadmin');
+    await expect(browser).toHaveTitle('Kelola Pengguna · Bank Sampah RW Digital');
+
+    await openPage(app, browser, '/report');
+    await expect(browser).toHaveTitle('Laporan RW · Bank Sampah RW Digital');
+
+    await screen.getByRole('button', 'English').tap();
+    await expect(browser).toHaveTitle('Community Report · Community Waste Bank');
+  });
+});
+
 describe('guards', () => {
   test('an anonymous visitor is sent to /login', async ({ app, screen, browser }) => {
     await app.open('/cashier/payouts');

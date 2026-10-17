@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengurus_rw'] })
+definePageMeta({ titleKey: 'report.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengurus_rw'] })
 
 const { locale, t } = useI18n()
 const client = useSupabaseClient<Database>()
@@ -17,14 +17,12 @@ const exporting = ref(false)
 const { scopeRw } = await useMyScope()
 
 async function buildRows() {
-  const [depRes, itemsRes, catsRes, rtRes, ledgerRes] = await Promise.all([
+  const [depRes, itemsRes, rtRes, ledgerRes] = await Promise.all([
     client.from('deposits').select('id,total_weight,total_value,deposited_at,resident_id').eq('status', 'tercatat'),
-    client.from('deposit_items').select('deposit_id,category_id,weight_kg'),
-    client.from('waste_categories').select('id,name'),
+    client.from('deposit_items').select('deposit_id,category_name,weight_kg'),
     client.from('profiles').select('id,area:areas!profiles_area_id_fkey(rw,rt)').eq('role', 'warga'),
     client.from('savings_ledger').select('resident_id,type,amount'),
   ])
-  const catNames = new Map((catsRes.data ?? []).map(c => [c.id, c.name]))
   const rtOf = new Map((rtRes.data ?? []).map((p) => {
     const area = p.area as unknown as { rw: string, rt: string } | null
     return [p.id, { rw: area?.rw ?? '?', rt: area?.rt ?? '?' }] as const
@@ -40,10 +38,10 @@ async function buildRows() {
   const totalRp = deps.reduce((s, d) => s + Number(d.total_value), 0)
   const balance = ledger.reduce((s, l) => s + (l.type === 'kredit' ? Number(l.amount) : -Number(l.amount)), 0)
 
+  // snapshot names: a renamed master never rewrites a past report
   const byCat = new Map<string, number>()
   for (const it of items) {
-    const n = catNames.get(it.category_id) ?? '?'
-    byCat.set(n, (byCat.get(n) ?? 0) + Number(it.weight_kg))
+    byCat.set(it.category_name, (byCat.get(it.category_name) ?? 0) + Number(it.weight_kg))
   }
   const byRt = new Map<string, number>()
   for (const d of deps) {

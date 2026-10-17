@@ -70,7 +70,8 @@ for (const r of RESIDENTS) {
     const lines = pick(cats, 1 + Math.floor(rand() * 3)).map((c) => {
       const weight = round1(0.5 + rand() * 7.5)
       const price = Number(c.price_per_kg)
-      return { category_id: c.id, weight_kg: weight, price_per_kg: price, value: Math.round(weight * price) }
+      // category_name is the frozen label of the line, like price/value
+      return { category_id: c.id, category_name: c.name, weight_kg: weight, price_per_kg: price, value: Math.round(weight * price) }
     })
     const [dep] = await api('/rest/v1/deposits', {
       method: 'POST',
@@ -130,7 +131,7 @@ const mkShipment = async (status, dayAgo) => {
   const lines = pick(cats, 2 + Math.floor(rand() * 2)).map((c) => {
     const weight = round1(20 + rand() * 80)
     const price = Number(c.price_per_kg)
-    return { category_id: c.id, weight_kg: weight, price_per_kg: price, value: Math.round(weight * price) }
+    return { category_id: c.id, category_name: c.name, weight_kg: weight, price_per_kg: price, value: Math.round(weight * price) }
   })
   const [ship] = await api('/rest/v1/shipments', {
     method: 'POST',

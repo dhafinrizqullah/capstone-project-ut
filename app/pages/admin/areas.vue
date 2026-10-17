@@ -3,7 +3,7 @@ import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['superadmin'] })
+definePageMeta({ titleKey: 'areas.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['superadmin'] })
 
 const { t } = useI18n()
 const client = useSupabaseClient<Database>()
