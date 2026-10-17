@@ -15,7 +15,7 @@ export const HOME: Record<RoleKey, string> = {
   petugas: '/cashier',
   pengepul: '/handover',
   pengurus_rw: '/',
-  superadmin: '/admin/users',
+  superadmin: '/',
 };
 
 export const EMAIL: Record<RoleKey, string> = {

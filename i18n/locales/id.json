@@ -169,7 +169,15 @@
     "subtitle": "Unduh rekap resmi periode berjalan.",
     "exportExcel": "Unduh Excel",
     "printPdf": "Cetak / PDF",
-    "hint": "Excel berisi ringkasan KPI, per kategori, dan per RT. PDF via dialog cetak browser."
+    "hint": "Excel berisi ringkasan KPI, per kategori, per RT, plus satu baris per penimbangan dan per item. PDF via dialog cetak browser.",
+    "generated": "Dibuat",
+    "ward": "Wilayah",
+    "summary": "Ringkasan",
+    "totalValue": "Nilai timbulan",
+    "byCategory": "Per kategori",
+    "byRt": "Per RT",
+    "weighings": "Penimbangan",
+    "items": "Rincian item"
   },
   "users": {
     "title": "Kelola Pengguna",

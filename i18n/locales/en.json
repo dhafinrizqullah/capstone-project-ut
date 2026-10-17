@@ -170,7 +170,15 @@
     "subtitle": "Download the official recap for the current period.",
     "exportExcel": "Download Excel",
     "printPdf": "Print / PDF",
-    "hint": "Excel contains KPI summary, per-category, and per-RT sheets. PDF via the browser print dialog."
+    "hint": "Excel holds the KPI summary, per category, per unit, plus one row per weighing and per item line. PDF via the browser print dialog.",
+    "generated": "Generated",
+    "ward": "Ward",
+    "summary": "Summary",
+    "totalValue": "Collected value",
+    "byCategory": "By category",
+    "byRt": "By unit",
+    "weighings": "Weighings",
+    "items": "Item lines"
   },
   "users": {
     "title": "Manage Users",

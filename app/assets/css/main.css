@@ -38,3 +38,32 @@ html.dark {
     animation-delay: 80ms;
   }
 }
+
+/* Printing: the recap, without the app around it, on light surfaces. */
+@media print {
+  /* a printed report is light, whatever the screen theme is */
+  html.dark {
+    --ui-bg: #fff;
+    --ui-bg-elevated: #fff;
+    --ui-text: #0f172a;
+    --ui-text-highlighted: #0f172a;
+    --ui-text-muted: #475569;
+    --ui-border: #cbd5e1;
+    --ui-border-muted: #e2e8f0;
+  }
+
+  /* the dashboard sidebar is chrome, not report content */
+  [data-collapsed] {
+    display: none !important;
+  }
+
+  /* the panel body scrolls on screen; paper has no viewport */
+  [data-slot="body"] {
+    overflow: visible !important;
+  }
+
+  section,
+  table {
+    break-inside: avoid;
+  }
+}

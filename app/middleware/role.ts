@@ -1,12 +1,13 @@
 import type { Database } from '~/types/database.types'
 
-// ponytail: central role-home map — single source of truth
+// ponytail: central role-home map — single source of truth. Everyone who may
+// open the analytics dashboard lands there; the rest keep their own home.
 export const HOME_BY_ROLE: Record<string, string> = {
   warga: '/resident',
   petugas: '/cashier',
   pengepul: '/handover',
   pengurus_rw: '/',
-  superadmin: '/admin/users',
+  superadmin: '/',
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {

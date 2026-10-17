@@ -7,6 +7,14 @@ import { openPage, settle, signInAs } from './helpers';
 const RECENT_ROWS = `[...document.querySelectorAll('[data-slot="body"] table tbody tr')]
   .map(r => r.innerText.replace(/\\s+/g, ' ')).join(' ~ ')`;
 
+// "Warga Aktif" KPI of the analytics dashboard.
+const kpiResidents = (browser: { evaluate: (s: string) => Promise<unknown> }) => browser.evaluate(
+  `(() => {
+    const card = [...document.querySelectorAll('article')].find(a => a.innerText.includes('Warga Aktif'))
+    return card?.querySelectorAll('div')[1]?.textContent?.trim() ?? 'missing'
+  })()`,
+) as Promise<string>;
+
 /**
  * Renames the category row matching `from` through the Master Harga modal.
  * Missing rows are a no-op so a crashed run can re-normalise itself.
@@ -100,30 +108,33 @@ describe('pengepul', () => {
 });
 
 describe('pengurus_rw', () => {
-  test('dashboard renders KPIs and charts, without the superadmin RW/RT filter', async ({ app, screen, browser }) => {
+  test('dashboard hides the RW for its own scope and offers the RT filter', async ({ app, screen, browser }) => {
     await signInAs(app, screen, browser, 'pengurus_rw'); // lands on the dashboard
     await expect(screen.getByText('Total Sampah Terkumpul')).toBeVisible();
 
     await expect(await browser.evaluate(`document.querySelectorAll('canvas').length`)).toBe(3);
+    // no RW picker: they only see their own RW, but per-RT filtering is theirs
     await expect(await screen.getByLabel('RW').count()).toBe(0);
-    await expect(await screen.getByLabel('RT').count()).toBe(0);
+    await expect(screen.getByLabel('RT')).toBeVisible();
+    // rows name the unit, never the ward
+    const rows = await browser.evaluate(RECENT_ROWS) as string;
+    await expect(rows).toMatch(/· RT \d\d/);
+    await expect(rows).not.toMatch(/RW \d\d/);
   });
 
-  test('dashboard is scoped to its own RW', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'pengurus_rw'); // seeded admin@rw05.id → RW 05
+  test('the RT filter narrows the KPIs', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'pengurus_rw');
     await expect(screen.getByText('Total Sampah Terkumpul')).toBeVisible();
+    // demo seed: 8 residents in RW 05 — 3 in RT 01
+    await expect(await kpiResidents(browser)).toBe('8');
 
-    // demo seed: 8 residents in RW 05, 4 in RW 06 — unscoped would show 12
-    const kpi = await browser.evaluate(
-      `(() => {
-        const card = [...document.querySelectorAll('article')].find(a => a.innerText.includes('Warga Aktif'))
-        return card?.querySelectorAll('div')[1]?.textContent?.trim() ?? 'missing'
-      })()`,
-    ) as string;
-    await expect(kpi).toBe('8');
+    await screen.getByLabel('RT').tap();
+    await screen.getByRole('option', 'RT 01').waitFor({ state: 'visible' });
+    await screen.getByRole('option', 'RT 01').tap();
+    await expect(await kpiResidents(browser)).toBe('3');
   });
 
-  test('exports the report as an xlsx download', async ({ app, screen, browser }) => {
+  test('exports the report as an xlsx download, one row per line', async ({ app, screen, browser }) => {
     await signInAs(app, screen, browser, 'pengurus_rw');
     await openPage(app, browser, '/report');
 
@@ -132,6 +143,47 @@ describe('pengurus_rw', () => {
       { timeout: 30000 },
     );
     await expect(download.suggestedFilename).toMatch(/^laporan-rw-\d{4}-\d{2}-\d{2}\.xlsx$/);
+
+    // read the workbook back: the summary sheets plus the raw lines
+    // (xlsx resolves to its CJS build here, where the functions live on `default`)
+    const xlsx = await import('xlsx');
+    const XLSX = (xlsx.default ?? xlsx) as typeof xlsx;
+    const wb = XLSX.readFile(download.absolutePath);
+    await expect(wb.SheetNames).toEqual(['Ringkasan', 'Per kategori', 'Per RT', 'Penimbangan', 'Rincian item']);
+
+    const weighings = XLSX.utils.sheet_to_json<Record<string, string | number>>(wb.Sheets.Penimbangan!);
+    await expect(weighings.length).toBeGreaterThan(10);
+    await expect(Object.keys(weighings[0]!)).toEqual(['Tanggal', 'Warga', 'RW', 'RT', 'Berat', 'Nilai']);
+    // scoped to the pengurus' own RW, and RW 06 never leaks into the file
+    await expect([...new Set(weighings.map(r => r.RW))]).toEqual(['RW 05']);
+
+    const lines = XLSX.utils.sheet_to_json<Record<string, string | number>>(wb.Sheets['Rincian item']!);
+    await expect(lines.length).toBeGreaterThanOrEqual(weighings.length);
+    await expect(Object.keys(lines[0]!)).toEqual(['Tanggal', 'Warga', 'RW', 'RT', 'Kategori', 'Berat', 'Harga/kg', 'Nilai']);
+  });
+
+  test('the report prints the recap and calls window.print', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'pengurus_rw');
+    await openPage(app, browser, '/report');
+
+    // the recap is on the page, so the printed sheet is not an empty page
+    await expect(screen.getByText('Total Sampah Terkumpul')).toBeVisible();
+    await expect(screen.getByText('Per kategori')).toBeVisible();
+    await expect(screen.getByText('Per RT')).toBeVisible();
+    await expect(screen.getByText(/Dibuat:/)).toBeVisible();
+
+    await browser.evaluate(`window.print = () => { window.__printed = true }`);
+    await screen.getByRole('button', 'Cetak / PDF').tap();
+    await expect(await browser.evaluate(`window.__printed === true`)).toBe(true);
+
+    // the print stylesheet drops the app chrome and prints on light surfaces
+    const printCss = await browser.evaluate(`
+      [...document.styleSheets].flatMap(s => { try { return [...s.cssRules] } catch { return [] } })
+        .filter(r => r.media && String(r.media.mediaText).includes('print'))
+        .map(r => r.cssText).join('\\n')
+    `) as string;
+    await expect(printCss).toMatch(/data-collapsed/);
+    await expect(printCss).toMatch(/--ui-bg/);
   });
 });
 
@@ -142,6 +194,9 @@ describe('superadmin', () => {
 
     await expect(screen.getByLabel('RW')).toBeVisible();
     await expect(screen.getByLabel('RT')).toBeVisible();
+    // seeing every RW is exactly why the rows carry the ward here
+    const rows = await browser.evaluate(RECENT_ROWS) as string;
+    await expect(rows).toMatch(/RW \d\d/);
   });
 
   test('sees every RW: dashboard count and all payout requests', async ({ app, screen, browser }) => {
@@ -150,13 +205,7 @@ describe('superadmin', () => {
     // demo seed: 8 residents in RW 05 + 4 in RW 06 (the scoped pengurus_rw sees 8)
     await openPage(app, browser, '/');
     await expect(screen.getByText('Total Sampah Terkumpul')).toBeVisible();
-    const kpi = await browser.evaluate(
-      `(() => {
-        const card = [...document.querySelectorAll('article')].find(a => a.innerText.includes('Warga Aktif'))
-        return card?.querySelectorAll('div')[1]?.textContent?.trim() ?? 'missing'
-      })()`,
-    ) as string;
-    await expect(kpi).toBe('12');
+    await expect(await kpiResidents(browser)).toBe('12');
 
     // the RW 06 pending request the RW 05 operator must not see
     await openPage(app, browser, '/cashier/payouts');

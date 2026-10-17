@@ -87,7 +87,10 @@ for (const role of Object.keys(ROLES) as RoleKey[]) {
 
 describe('document title', () => {
   test('follows the page and the active locale', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await signInAs(app, screen, browser, 'superadmin'); // lands on the analytics dashboard
+    await expect(browser).toHaveTitle('Dasbor Analitik Timbulan Sampah · Bank Sampah RW Digital');
+
+    await openPage(app, browser, '/admin/users');
     await expect(browser).toHaveTitle('Kelola Pengguna · Bank Sampah RW Digital');
 
     await openPage(app, browser, '/report');

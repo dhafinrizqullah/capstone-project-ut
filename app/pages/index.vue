@@ -43,6 +43,8 @@ const rwFilter = ref('all')
 const rtOptions = computed(() => {
   const pool = [...(dash.value?.residents.values() ?? [])]
     .filter(p => rwFilter.value === 'all' || (p.rw ?? '?') === rwFilter.value)
+    // RW-bound staff only ever see their own RW
+    .filter(p => !scopeRw.value || (p.rw ?? '?') === scopeRw.value)
   const rts = [...new Set(pool.map(p => p.rt ?? '?'))].sort()
   return [{ label: t('common.all'), value: 'all' }, ...rts.map(rt => ({ label: rt, value: rt }))]
 })
@@ -123,11 +125,13 @@ const recent = computed(() => {
   return deps.map((d) => {
     const prof = dash.value?.residents.get(d.resident_id)
     const first = fItems.value.find(i => i.deposit_id === d.id)
+    // ponytail: person first, then area hierarchy — the RW only qualifies when the
+    // viewer sees more than one (superadmin); RW-bound staff already know their RW
+    const area = scopeRw.value ? (prof?.rt ?? '?') : `${prof?.rw ?? '?'} · ${prof?.rt ?? '?'}`
     return {
       id: d.id,
       time: fmtTime.value.format(new Date(d.deposited_at)),
-      // ponytail: person first, then area hierarchy (RW before RT)
-      name: prof ? `${prof.full_name} · ${prof.rw ?? '?'} · ${prof.rt ?? '?'}` : '?',
+      name: prof ? `${prof.full_name} · ${area}` : '?',
       type: first ? first.category_name : '-',
       weight: fmtKg(Number(d.total_weight)),
       value: fmtRp.value.format(Number(d.total_value)),
@@ -246,8 +250,9 @@ onUnmounted(() => {
     <template #body>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <p class="text-sm text-muted">{{ $t('dash.subtitle') }}</p>
-        <div v-if="myRole === 'superadmin'" class="flex gap-2">
+        <div v-if="myRole === 'superadmin' || scopeRw" class="flex gap-2">
           <USelect
+            v-if="myRole === 'superadmin'"
             v-model="rwFilter"
             :items="rwOptions"
             value-key="value"

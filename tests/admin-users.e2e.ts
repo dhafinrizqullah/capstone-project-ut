@@ -1,10 +1,18 @@
 import { describe, test } from '@e2e-dev/web';
+import type { Browser } from '@e2e-dev/web';
 import { expect } from 'e2e';
-import { signInAs } from './helpers';
+import type { App, Screen } from 'e2e';
+import { openPage, signInAs } from './helpers';
+
+// superadmin lands on the analytics dashboard, so the user list is a step away
+async function openUsers(app: App, screen: Screen, browser: Browser) {
+  await signInAs(app, screen, browser, 'superadmin');
+  await openPage(app, browser, '/admin/users');
+}
 
 describe('admin users', () => {
   test('role picker offers no superadmin', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     await screen.getByLabel('Peran').tap();
     await screen.getByRole('option', /Warga/).waitFor({ state: 'visible' });
@@ -16,7 +24,7 @@ describe('admin users', () => {
   });
 
   test('server refuses to create a superadmin', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     const status = await browser.evaluate(`(async () => {
       const r = await fetch('/api/admin/users', {
@@ -37,7 +45,7 @@ describe('admin users', () => {
   });
 
   test('server requires the right scope per role', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     const create = async (body: Record<string, unknown>) => await browser.evaluate(`(async () => {
       const r = await fetch('/api/admin/users', {
@@ -60,7 +68,7 @@ describe('admin users', () => {
   });
 
   test('language switch flips the UI and animates', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     await expect(screen.getByRole('button', 'Indonesia')).toHaveAttribute('aria-pressed', 'true');
     await screen.getByRole('button', 'English').tap();
@@ -69,7 +77,7 @@ describe('admin users', () => {
   });
 
   test('validation messages follow the active locale', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     // Indonesian (default): plain words, no zod jargon
     await screen.getByRole('button', 'Buat Pengguna').tap();
@@ -86,7 +94,7 @@ describe('admin users', () => {
   });
 
   test('area fields follow the role: warga needs RW+RT, RW-bound staff needs RW', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     const pickRole = async (label: RegExp) => {
       await screen.getByLabel('Peran').tap();
@@ -114,7 +122,7 @@ describe('admin users', () => {
   });
 
   test('the list carries the RW of staff profiles too', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     // seeded admin@rw05.id is pengurus_rw, scoped through profiles.rw (it has no area, so no RT)
     await screen.getByPlaceholder('Cari…').fill('admin@rw05.id');
@@ -130,7 +138,7 @@ describe('admin users', () => {
   });
 
   test('panel body children enter with the rise animation', async ({ app, screen, browser }) => {
-    await signInAs(app, screen, browser, 'superadmin');
+    await openUsers(app, screen, browser);
 
     const style = await browser.evaluate(
       `getComputedStyle(document.querySelector('[data-slot="body"] > *')).animationName`,
