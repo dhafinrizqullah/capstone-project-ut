@@ -21,11 +21,12 @@ pnpm dev
 
 ## Environment
 
-Create a `.env` file with:
+Create a `.env` file with (see `.env.example`):
 
 ```env
-SUPABASE_URL=
-SUPABASE_KEY=
+NUXT_PUBLIC_SUPABASE_URL=
+NUXT_PUBLIC_SUPABASE_KEY=
+SUPABASE_SERVICE_KEY=
 ```
 
 ## Scripts

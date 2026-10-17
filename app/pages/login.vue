@@ -1,13 +1,41 @@
+<script setup lang="ts">
+import type { FormSubmitEvent } from '@nuxt/ui'
+import { loginSchema, type LoginSchema } from '~/utils/login-schema'
+
+definePageMeta({ layout: false, middleware: 'guest' })
+
+const state = reactive<Partial<LoginSchema>>({ email: '', password: '' })
+
+const supabase = useSupabaseClient()
+const loading = ref(false)
+const serverError = ref('')
+
+async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
+  loading.value = true
+  serverError.value = ''
+  const { error: authError } = await supabase.auth.signInWithPassword({
+    email: event.data.email,
+    password: event.data.password,
+  })
+  loading.value = false
+  if (authError) {
+    serverError.value = 'Email atau kata sandi salah. Periksa kembali lalu coba lagi.'
+    return
+  }
+  await navigateTo('/')
+}
+</script>
+
 <template>
   <div class="min-h-dvh lg:grid lg:grid-cols-[1.1fr_1fr]">
     <section class="hidden lg:flex relative bg-gradient-to-br from-emerald-950 to-emerald-700 text-emerald-50 flex-col justify-center p-16 overflow-hidden">
-      <div class="absolute -right-24 -bottom-32 w-[28rem] h-[28rem] rounded-full bg-emerald-300/20 blur-sm" />
+      <div class="absolute -right-24 -bottom-32 w-[28rem] h-[28rem] rounded-full bg-emerald-300/20 blur-sm" aria-hidden="true" />
       <div class="relative max-w-xl">
         <div class="flex items-center gap-3 font-extrabold text-lg mb-8">
-          <span class="w-10 h-10 rounded-xl bg-white/20 grid place-items-center">♻</span>
+          <span class="w-10 h-10 rounded-xl bg-white/20 grid place-items-center" aria-hidden="true">♻</span>
           <span>Bank Sampah RW Digital</span>
         </div>
-        <h1 class="text-5xl font-extrabold leading-tight tracking-tight mb-4">
+        <h1 class="text-5xl font-extrabold leading-tight tracking-tight mb-4 text-balance">
           Pilah sampah dari rumah, pantau tabungan secara real-time.
         </h1>
         <p class="text-emerald-100 leading-relaxed max-w-md">
@@ -35,57 +63,60 @@
     </section>
 
     <div class="flex items-center justify-center p-6 lg:p-10 bg-emerald-50">
-      <UPageCard class="w-full max-w-md">
-        <UAuthForm
-          :schema="schema"
-          :fields="fields"
-          title="Masuk"
-          description="Gunakan akun email dan kata sandi sesuai peran."
-          icon="i-lucide-recycle"
-          :submit="{ label: 'Masuk ke Dasbor', block: true }"
-          @submit="onSubmit"
-        >
-          <template #validation>
-            <UAlert v-if="error" color="error" variant="soft" :title="error" class="mb-4" />
-          </template>
-          <template #footer>
-            Belum punya akun? Hubungi pengurus RW.
-          </template>
-        </UAuthForm>
-      </UPageCard>
+      <div class="w-full max-w-md bg-white border border-emerald-100 rounded-3xl shadow-2xl p-8">
+        <h2 class="text-2xl font-extrabold tracking-tight mb-1 text-slate-900">Masuk</h2>
+        <p class="text-slate-500 mb-6">Gunakan akun email dan kata sandi sesuai peran.</p>
+
+        <UForm :schema="loginSchema" :state="state" class="space-y-4" @submit="onSubmit">
+          <UFormField name="email" label="Email" required>
+            <UInput
+              v-model="state.email"
+              type="email"
+              name="email"
+              autocomplete="email"
+              :spellcheck="false"
+              placeholder="nama@rw05.id…"
+              size="lg"
+              :ui="{ base: 'rounded-xl' }"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField name="password" label="Kata sandi" required>
+            <UInput
+              v-model="state.password"
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="••••••••…"
+              size="lg"
+              :ui="{ base: 'rounded-xl' }"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UAlert
+            v-if="serverError"
+            color="error"
+            variant="soft"
+            :title="serverError"
+            aria-live="polite"
+          />
+
+          <UButton
+            type="submit"
+            block
+            size="lg"
+            :ui="{ base: 'rounded-xl font-bold' }"
+            :loading="loading"
+            label="Masuk ke Dasbor"
+          />
+        </UForm>
+
+        <p class="text-center text-sm text-slate-500 mt-6">
+          Belum punya akun? Hubungi pengurus RW.
+        </p>
+      </div>
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import * as z from 'zod'
-import type { FormSubmitEvent, AuthFormField } from '@nuxt/ui'
-
-definePageMeta({ layout: false })
-
-const supabase = useSupabaseClient()
-
-const fields: AuthFormField[] = [
-  { name: 'email', type: 'email', label: 'Email', placeholder: 'nama@rw05.id', required: true },
-  { name: 'password', type: 'password', label: 'Kata sandi', placeholder: '••••••••', required: true },
-]
-
-const schema = z.object({
-  email: z.email('Email tidak valid'),
-  password: z.string().min(1, 'Kata sandi wajib diisi'),
-})
-
-type Schema = z.output<typeof schema>
-
-const error = ref('')
-
-async function onSubmit(event: FormSubmitEvent<Schema>) {
-  error.value = ''
-  const { error: authError } = await supabase.auth.signInWithPassword(event.data)
-  if (authError) {
-    error.value = authError.message
-    return
-  }
-  await navigateTo('/')
-}
-</script>

@@ -19,6 +19,7 @@ Web application built with **Nuxt 4** and **Supabase** (Postgres, Auth, Storage,
 - Keep components small and colocated; prefer auto-imports provided by Nuxt.
 - Validate and type all Supabase responses; never trust client input.
 - RLS policies are required for every table; test them.
+- Mobile-first responsive by default: every page must render cleanly at 360px width with no horizontal overflow. Sidebar becomes drawer/slideover on mobile, multi-column grids collapse to one column, tables scroll horizontally or stack.
 - Run `pnpm lint` and `pnpm test` before committing.
 
 ## Commands
@@ -40,7 +41,7 @@ Project skills live under `.agents/skills/`. **Always load and apply the relevan
 - Design/UI: `frontend-design`, `web-design-guidelines`
 - Testing: `vitest`, `vue-testing-best-practices`
 
-When implementing or reviewing UI, the design skills above must be used. When touching database/auth, the Supabase skills must be used.
+When implementing or reviewing UI, the design skills above must be used. When touching database/auth, the Supabase skills must be used. For responsive work, apply the Responsive patterns in `nuxt-ui` conventions, the quality floor (`frontend-design`), and the Touch/Safe-Areas/Layout rules (`web-design-guidelines`).
 
 ## Environment
 
