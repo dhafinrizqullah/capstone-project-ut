@@ -42,38 +42,38 @@
         <form class="space-y-4" @submit.prevent="login">
           <div>
             <label class="block text-sm font-semibold mb-1.5" for="email">Email</label>
-            <UInput
+            <input
               id="email"
               v-model="email"
               type="email"
               placeholder="nama@rw05.id"
               required
-              class="w-full"
+              class="w-full px-3 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
             />
           </div>
           <div>
             <label class="block text-sm font-semibold mb-1.5" for="password">Kata sandi</label>
-            <UInput
+            <input
               id="password"
               v-model="password"
               type="password"
               placeholder="••••••••"
               required
-              class="w-full"
+              class="w-full px-3 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
             />
           </div>
 
-          <UAlert v-if="error" color="error" variant="soft" :title="error" />
+          <div v-if="error" class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
+            {{ error }}
+          </div>
 
-          <UButton
+          <button
             type="submit"
-            block
-            size="lg"
-            :loading="loading"
+            class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-3 transition"
             :disabled="loading"
           >
-            Masuk ke Dasbor
-          </UButton>
+            {{ loading ? 'Memproses...' : 'Masuk ke Dasbor' }}
+          </button>
         </form>
 
         <p class="text-center text-sm text-slate-500 mt-6">

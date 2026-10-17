@@ -20,15 +20,12 @@
       <div class="mt-auto bg-white/10 rounded-2xl p-4 text-sm">
         <strong class="block mb-1">Pengurus RW 05</strong>
         <span class="text-emerald-200">Bandung, Jawa Barat</span>
-        <UButton
-          class="mt-4 w-full"
-          color="neutral"
-          variant="soft"
-          size="sm"
+        <button
+          class="mt-4 w-full rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold py-2 transition"
           @click="logout"
         >
           Keluar
-        </UButton>
+        </button>
       </div>
     </aside>
 
