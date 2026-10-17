@@ -59,6 +59,7 @@
     "colType": "Jenis Sampah",
     "colWeight": "Berat",
     "colValue": "Nilai",
+    "colStatus": "Status",
     "recorded": "Tercatat"
   },
   "resident": {

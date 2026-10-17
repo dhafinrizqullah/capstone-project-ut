@@ -103,12 +103,14 @@ const composition = computed(() => {
 })
 
 const perRt = computed(() => {
-  const byRt = new Map<string, number>()
+  // ponytail: RT names repeat across RWs — qualify the label when viewing all RWs
+  const byKey = new Map<string, number>()
   for (const dep of fDeposits.value) {
-    const rt = scopeOf(dep.resident_id).rt
-    byRt.set(rt, (byRt.get(rt) ?? 0) + Number(dep.total_weight))
+    const s = scopeOf(dep.resident_id)
+    const key = rwFilter.value === 'all' ? `${s.rw} · ${s.rt}` : s.rt
+    byKey.set(key, (byKey.get(key) ?? 0) + Number(dep.total_weight))
   }
-  return [...byRt.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([rt, kg]) => ({ rt, kg }))
+  return [...byKey.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([rt, kg]) => ({ rt, kg }))
 })
 
 const recent = computed(() => {

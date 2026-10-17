@@ -59,6 +59,7 @@
     "colType": "Waste Type",
     "colWeight": "Weight",
     "colValue": "Value",
+    "colStatus": "Status",
     "recorded": "Recorded"
   },
   "resident": {
