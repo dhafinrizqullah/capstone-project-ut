@@ -18,7 +18,7 @@ async function buildRows() {
     client.from('deposits').select('total_weight,total_value,deposited_at,resident_id').eq('status', 'tercatat'),
     client.from('deposit_items').select('category_id,weight_kg'),
     client.from('waste_categories').select('id,name'),
-    client.from('profiles').select('id,rt').eq('role', 'warga'),
+    client.from('profiles').select('id,area:areas!profiles_area_id_fkey(rw,rt)').eq('role', 'warga'),
     client.from('savings_ledger').select('type,amount'),
   ])
   const deps = depRes.data ?? []
@@ -32,11 +32,15 @@ async function buildRows() {
     const n = catNames.get(it.category_id) ?? '?'
     byCat.set(n, (byCat.get(n) ?? 0) + Number(it.weight_kg))
   }
-  const rtOf = new Map((rtRes.data ?? []).map(p => [p.id, p.rt ?? '?']))
+  const rtOf = new Map((rtRes.data ?? []).map((p) => {
+    const area = p.area as unknown as { rw: string, rt: string } | null
+    return [p.id, { rw: area?.rw ?? '?', rt: area?.rt ?? '?' }] as const
+  }))
   const byRt = new Map<string, number>()
   for (const d of deps) {
-    const rt = rtOf.get(d.resident_id) ?? '?'
-    byRt.set(rt, (byRt.get(rt) ?? 0) + Number(d.total_weight))
+    const s = rtOf.get(d.resident_id) ?? { rw: '?', rt: '?' }
+    const key = `${s.rw} · ${s.rt}`
+    byRt.set(key, (byRt.get(key) ?? 0) + Number(d.total_weight))
   }
   return {
     kpi: [

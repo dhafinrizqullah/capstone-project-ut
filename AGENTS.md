@@ -20,6 +20,7 @@ Web application built with **Nuxt 4** and **Supabase** (Postgres, Auth, Storage,
 - Validate and type all Supabase responses; never trust client input.
 - RLS policies are required for every table; test them.
 - Mobile-first responsive by default: every page must render cleanly at 360px width with no horizontal overflow. Sidebar becomes drawer/slideover on mobile, multi-column grids collapse to one column, tables scroll horizontally or stack.
+- Area hierarchy is always RW → RT: RT options are scoped to the selected RW everywhere (dashboard, forms); changing RW resets an out-of-scope RT.
 - Run `pnpm lint` and `pnpm test` before committing.
 
 ## Commands

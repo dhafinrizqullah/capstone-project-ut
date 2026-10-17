@@ -31,13 +31,33 @@ export default defineEventHandler(async (event) => {
   })
   if (createErr || !created.user) throw createError({ statusCode: 400, message: createErr?.message ?? 'Create failed' })
 
+  // RW -> RT resolves through the areas master (created on demand)
+  let areaId: number | null = null
+  if (body.role === 'warga' && body.rw && body.rt) {
+    const { data: existing } = await admin
+      .from('areas')
+      .select('id')
+      .eq('rw', body.rw)
+      .eq('rt', body.rt)
+      .maybeSingle()
+    areaId = existing?.id ?? null
+    if (!areaId) {
+      const { data: made, error: areaErr } = await admin
+        .from('areas')
+        .insert({ rw: body.rw, rt: body.rt })
+        .select('id')
+        .single()
+      if (areaErr || !made) throw createError({ statusCode: 400, message: areaErr?.message ?? 'Area failed' })
+      areaId = made.id
+    }
+  }
+
   const { error: profileErr } = await admin.from('profiles').upsert({
     id: created.user.id,
     email: body.email,
     full_name: body.full_name,
     role: body.role,
-    rt: body.role === 'warga' ? (body.rt || null) : null,
-    rw: body.rw,
+    area_id: areaId,
   })
   if (profileErr) throw createError({ statusCode: 400, message: profileErr.message })
 

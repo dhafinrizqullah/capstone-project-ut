@@ -35,14 +35,12 @@ const RESIDENTS = [
 ]
 
 // 1. extra categories + residents
-await api('/rest/v1/waste_categories', {
-  method: 'POST',
-  headers: { Prefer: 'resolution=merge-duplicates' },
-  body: JSON.stringify([
-    { name: 'Kaca', price_per_kg: 2000 },
-    { name: 'Kardus', price_per_kg: 2500 },
-  ]),
-})
+for (const extra of [{ name: 'Kaca', price_per_kg: 2000 }, { name: 'Kardus', price_per_kg: 2500 }]) {
+  const found = await api(`/rest/v1/waste_categories?name=eq.${encodeURIComponent(extra.name)}&select=id&limit=1`)
+  if (!found?.length) {
+    await api('/rest/v1/waste_categories', { method: 'POST', body: JSON.stringify(extra) })
+  }
+}
 const cats = await api('/rest/v1/waste_categories?select=id,name,price_per_kg&active=eq.true')
 
 const residentIds = {}

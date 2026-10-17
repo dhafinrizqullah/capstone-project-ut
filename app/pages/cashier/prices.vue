@@ -17,6 +17,45 @@ const { data: rows, refresh } = await useAsyncData('prices', async () => {
   return data ?? []
 })
 
+const { data: myRole } = await useAsyncData('prices-role', async () => {
+  const { data } = await client.from('profiles').select('role').eq('id', useMyId()).maybeSingle()
+  return data?.role ?? null
+})
+const canDelete = computed(() => myRole.value === 'pengurus_rw' || myRole.value === 'superadmin')
+
+const { data: areaRows, refresh: refreshAreas } = await useAsyncData('areas', async () => {
+  const { data } = await client.from('areas').select('id,rw,rt').order('rw').order('rt')
+  return data ?? []
+})
+const newRw = ref('')
+const newRt = ref('')
+const savingArea = ref(false)
+
+async function addArea() {
+  if (!newRw.value.trim() || !newRt.value.trim()) return
+  savingArea.value = true
+  const { error } = await client.from('areas').insert({ rw: newRw.value.trim(), rt: newRt.value.trim() })
+  savingArea.value = false
+  if (error) {
+    toast.add({ title: error.code === '23505' ? `${newRw.value} · ${newRt.value}` : error.message, color: 'error' })
+    return
+  }
+  newRw.value = ''
+  newRt.value = ''
+  toast.add({ title: t('areas.saved'), color: 'success' })
+  await refreshAreas()
+}
+
+async function deleteArea(id: number) {
+  const { error } = await client.from('areas').delete().eq('id', id)
+  if (error) {
+    toast.add({ title: error.code === '23503' ? t('areas.inUse') : error.message, color: 'error' })
+    return
+  }
+  toast.add({ title: t('areas.deleted'), color: 'success' })
+  await refreshAreas()
+}
+
 type Row = NonNullable<typeof rows.value>[number]
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'name', header: () => t('prices.colName') },
@@ -119,6 +158,37 @@ async function onSave(event: FormSubmitEvent<Schema>) {
           </UForm>
         </template>
       </UModal>
+
+      <UCard class="mt-4">
+        <template #header>
+          <h2 class="font-bold">{{ $t('areas.title') }}</h2>
+          <p class="text-sm text-muted">{{ $t('areas.subtitle') }}</p>
+        </template>
+        <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end mb-3">
+          <UFormField name="newRw" :label="$t('areas.rw')">
+            <UInput v-model="newRw" placeholder="RW 05…" class="w-full" />
+          </UFormField>
+          <UFormField name="newRt" :label="$t('areas.rt')">
+            <UInput v-model="newRt" placeholder="RT 01…" class="w-full" />
+          </UFormField>
+          <UButton icon="i-lucide-plus" :label="$t('areas.add')" :loading="savingArea" @click="addArea" />
+        </div>
+        <ul class="grid gap-1">
+          <li v-for="a in areaRows ?? []" :key="a.id" class="flex items-center justify-between gap-2 text-sm py-1.5 border-t border-muted">
+            <span class="font-semibold">{{ a.rw }} · {{ a.rt }}</span>
+            <UButton
+              v-if="canDelete"
+              icon="i-lucide-trash"
+              color="error"
+              variant="ghost"
+              size="xs"
+              :aria-label="`${a.rw} ${a.rt}`"
+              @click="deleteArea(a.id)"
+            />
+          </li>
+        </ul>
+        <p v-if="!areaRows?.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
+      </UCard>
     </template>
   </UDashboardPanel>
 </template>

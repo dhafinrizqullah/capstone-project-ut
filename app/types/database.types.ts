@@ -39,6 +39,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      areas: {
+        Row: {
+          created_at: string
+          id: number
+          rt: string
+          rw: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          rt: string
+          rw: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          rt?: string
+          rw?: string
+        }
+        Relationships: []
+      }
       deposit_items: {
         Row: {
           category_id: number
@@ -128,33 +149,38 @@ export type Database = {
       }
       profiles: {
         Row: {
+          area_id: number | null
           created_at: string
           email: string
           full_name: string
           id: string
           role: string
-          rt: string | null
-          rw: string
         }
         Insert: {
+          area_id?: number | null
           created_at?: string
           email: string
           full_name: string
           id: string
           role: string
-          rt?: string | null
-          rw?: string
         }
         Update: {
+          area_id?: number | null
           created_at?: string
           email?: string
           full_name?: string
           id?: string
           role?: string
-          rt?: string | null
-          rw?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       savings_ledger: {
         Row: {

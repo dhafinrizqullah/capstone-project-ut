@@ -13,10 +13,17 @@ const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency
 
 const { data } = await useAsyncData('cashier-refs', async () => {
   const [residents, cats] = await Promise.all([
-    client.from('profiles').select('id,full_name,rt').eq('role', 'warga').order('full_name'),
+    client.from('profiles').select('id,full_name,area:areas!profiles_area_id_fkey(rw,rt)').eq('role', 'warga').order('full_name'),
     client.from('waste_categories').select('id,name,price_per_kg').eq('active', true).order('name'),
   ])
-  return { residents: residents.data ?? [], cats: cats.data ?? [] }
+  return {
+    residents: (residents.data ?? []).map(r => ({
+      id: r.id,
+      full_name: r.full_name,
+      area: r.area as unknown as { rw: string, rt: string } | null,
+    })),
+    cats: cats.data ?? [],
+  }
 })
 
 const residentId = ref<string>()
@@ -25,7 +32,10 @@ const weightKg = ref<number>()
 const items = ref<{ categoryId: number, name: string, weightKg: number, price: number, value: number }[]>([])
 const saving = ref(false)
 
-const residentItems = computed(() => (data.value?.residents ?? []).map(r => ({ label: `${r.full_name} · ${r.rt ?? '-'}`, value: r.id })))
+const residentItems = computed(() => (data.value?.residents ?? []).map(r => ({
+  label: `${r.full_name} · ${r.area?.rw ?? '-'} · ${r.area?.rt ?? '-'}`,
+  value: r.id,
+})))
 const categoryItems = computed(() => (data.value?.cats ?? []).map(c => ({ label: `${c.name} · ${fmtRp.value.format(Number(c.price_per_kg))}/kg`, value: c.id })))
 const total = computed(() => items.value.reduce((s, i) => s + i.value, 0))
 const totalKg = computed(() => items.value.reduce((s, i) => s + i.weightKg, 0))

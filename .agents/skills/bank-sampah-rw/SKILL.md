@@ -67,6 +67,7 @@ New page checklist: `definePageMeta({ layout: 'dashboard', middleware: ['auth', 
 - One `layouts/dashboard.vue` (`UDashboardGroup` + emerald `UDashboardSidebar`, plain `NuxtLink` list, role-filtered menu). Content pages stay light; buttons/badges inherit emerald from the theme.
 - `UApp` wrapper required. Forms: `UForm` + `UFormField` + `zod`, `autocomplete` + `spellcheck=false` on auth fields, server errors in `UAlert[aria-live]`, `…` in placeholders.
 - Responsive: clean at 360px, no horizontal overflow; sidebar becomes drawer on mobile; multi-column input rows collapse (`sm:` prefix); tables in `overflow-x-auto`.
+- Area hierarchy is always RW → RT: every RT picker is scoped to the selected RW (dashboard filters, admin form); changing RW resets an out-of-scope RT.
 
 ## Gotchas already bitten (do not regress)
 

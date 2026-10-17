@@ -31,6 +31,18 @@ export async function findUserId(email) {
   return users?.find(u => u.email === email)?.id
 }
 
+export async function ensureArea(rw, rt) {
+  if (!rw || !rt) return null
+  const found = await api(`/rest/v1/areas?rw=eq.${encodeURIComponent(rw)}&rt=eq.${encodeURIComponent(rt)}&select=id&limit=1`)
+  if (found?.length) return found[0].id
+  const [row] = await api('/rest/v1/areas', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ rw, rt }),
+  })
+  return row.id
+}
+
 export async function ensureUser({ email, password, full_name, role, rt, rw }) {
   const res = await fetch(`${URL}/auth/v1/admin/users`, {
     method: 'POST',
@@ -47,10 +59,11 @@ export async function ensureUser({ email, password, full_name, role, rt, rw }) {
     id = await findUserId(email) // already exists → reuse (rerunnable)
   }
   if (!id) throw new Error(`failed to resolve id for ${email}`)
+  const areaId = role === 'warga' ? await ensureArea(rw, rt) : null
   await api('/rest/v1/profiles', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ id, email, full_name, role, rt, rw }),
+    body: JSON.stringify({ id, email, full_name, role, area_id: areaId }),
   })
   console.log(`${created ? 'create' : 'reuse'}: ${email}`)
   return id

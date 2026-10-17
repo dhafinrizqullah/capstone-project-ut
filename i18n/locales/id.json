@@ -126,8 +126,17 @@
     "colDate": "Diajukan",
     "colStatus": "Status"
   },
-  "ship": {
-    "title": "Kirim ke Pengepul",
+  "areas": {
+    "title": "Wilayah RW / RT",
+    "subtitle": "Kelola daftar wilayah (sumber pilihan RW dan RT).",
+    "rw": "RW",
+    "rt": "RT",
+    "add": "Tambah wilayah",
+    "saved": "Wilayah tersimpan.",
+    "deleted": "Wilayah dihapus.",
+    "inUse": "Wilayah dipakai warga, tidak bisa dihapus."
+  },
+  "ship": {    "title": "Kirim ke Pengepul",
     "subtitle": "Catat muatan keluar dan terbitkan nota digital.",
     "collector": "Pengepul",
     "pickCollector": "Pilih pengepul…",

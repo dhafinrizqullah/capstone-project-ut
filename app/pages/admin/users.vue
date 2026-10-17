@@ -10,17 +10,22 @@ const client = useSupabaseClient<Database>()
 const toast = useToast()
 
 const { data: rows, refresh } = await useAsyncData('admin-users', async () => {
-  const { data } = await client.from('profiles').select('id,full_name,email,role,rt,rw').order('created_at', { ascending: false }).limit(100)
-  return data ?? []
+  const { data } = await client
+    .from('profiles')
+    .select('id,full_name,email,role,area:areas!profiles_area_id_fkey(rw,rt)')
+    .order('created_at', { ascending: false })
+    .limit(100)
+  return (data ?? []).map(r => ({
+    id: r.id,
+    full_name: r.full_name,
+    email: r.email,
+    role: r.role,
+    rw: (r.area as unknown as { rw: string, rt: string } | null)?.rw ?? null,
+    rt: (r.area as unknown as { rw: string, rt: string } | null)?.rt ?? null,
+  }))
 })
 
-// ponytail: area suggestions come from existing data, but new RW/RT can be typed
-const { data: areas } = await useAsyncData('admin-areas', async () => {
-  const { data } = await client.from('profiles').select('rt,rw').limit(500)
-  const rws = [...new Set((data ?? []).map(p => p.rw).filter(Boolean))].sort() as string[]
-  const rts = [...new Set((data ?? []).map(p => p.rt).filter(Boolean))].sort() as string[]
-  return { rws: rws.length ? rws : ['RW 05'], rts: rts.length ? rts : ['RT 01', 'RT 02', 'RT 03'] }
-})
+// ponytail: area master from the areas table; RT options scoped to chosen RW
 
 type Row = NonNullable<typeof rows.value>[number]
 const columns: TableColumn<Row>[] = [
@@ -30,6 +35,24 @@ const columns: TableColumn<Row>[] = [
   { accessorKey: 'rw', header: () => t('users.colRw') },
   { accessorKey: 'rt', header: () => t('users.colRt') },
 ]
+
+const search = ref('')
+const page = ref(1)
+const pageSize = 10
+
+const filtered = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  const list = rows.value ?? []
+  if (!q) return list
+  return list.filter(r =>
+    r.full_name.toLowerCase().includes(q)
+    || r.email.toLowerCase().includes(q)
+    || roleLabel(r.role).toLowerCase().includes(q),
+  )
+})
+const total = computed(() => filtered.value.length)
+const paged = computed(() => filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+watch(search, () => { page.value = 1 })
 
 const roleLabel = (r: string) => ({
   warga: t('users.roleWarga'),
@@ -50,6 +73,24 @@ const schema = z.object({
 type Schema = z.output<typeof schema>
 const state = reactive<Partial<Schema>>({ full_name: '', email: '', password: '', role: 'warga', rt: '', rw: 'RW 05' })
 const creating = ref(false)
+
+// ponytail: RW/RT pickers read the areas master; RT scoped to chosen RW, custom values allowed
+const { data: areas } = await useAsyncData('admin-areas', async () => {
+  const { data } = await client.from('areas').select('rw,rt').order('rw').order('rt')
+  return data ?? []
+})
+const rwOptions = computed(() => {
+  const list = [...new Set((areas.value ?? []).map(a => a.rw))].sort()
+  return list.length ? list : ['RW 05']
+})
+const rtSuggestions = computed(() => {
+  const pool = (areas.value ?? []).filter(a => !state.rw || a.rw === state.rw)
+  const list = [...new Set(pool.map(a => a.rt))].sort()
+  return list.length ? list : ['RT 01', 'RT 02', 'RT 03']
+})
+watch(() => state.rw, () => {
+  if (state.rt && !rtSuggestions.value.includes(state.rt)) state.rt = ''
+})
 
 const roleItems = computed(() => (['warga', 'petugas', 'pengepul', 'pengurus_rw', 'superadmin'] as const)
   .map(v => ({ label: roleLabel(v), value: v })))
@@ -98,17 +139,20 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
               <USelect v-model="state.role" :items="roleItems" value-key="value" class="w-full" />
             </UFormField>
             <UFormField name="rw" :label="$t('users.colRw')" required>
-              <UInputMenu v-model="state.rw" :items="areas?.rws ?? []" create-item class="w-full" />
+              <UInputMenu v-model="state.rw" :items="rwOptions" create-item class="w-full" />
             </UFormField>
             <UFormField v-if="state.role === 'warga'" name="rt" :label="$t('users.rt')">
-              <UInputMenu v-model="state.rt" :items="areas?.rts ?? []" create-item class="w-full" />
+              <UInputMenu v-model="state.rt" :items="rtSuggestions" create-item class="w-full" />
             </UFormField>
             <UButton type="submit" :loading="creating" :label="$t('users.create')" block />
           </UForm>
         </UCard>
 
         <UCard>
-          <UTable :data="rows ?? []" :columns="columns">
+          <div class="flex justify-end mb-3">
+            <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-64" />
+          </div>
+          <UTable :data="paged" :columns="columns">
             <template #role-cell="{ row }">
               <UBadge color="neutral" variant="subtle">{{ roleLabel(row.original.role) }}</UBadge>
             </template>
@@ -119,6 +163,9 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
               <p class="text-sm text-muted py-6 text-center">{{ $t('common.empty') }}</p>
             </template>
           </UTable>
+          <div class="flex justify-end pt-4">
+            <UPagination v-model:page="page" :items-per-page="pageSize" :total="total" />
+          </div>
         </UCard>
       </div>
     </template>

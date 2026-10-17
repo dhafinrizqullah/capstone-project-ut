@@ -126,6 +126,16 @@
     "colDate": "Requested",
     "colStatus": "Status"
   },
+  "areas": {
+    "title": "RW / RT Areas",
+    "subtitle": "Manage the area list (source of RW and RT pickers).",
+    "rw": "RW",
+    "rt": "RT",
+    "add": "Add area",
+    "saved": "Area saved.",
+    "deleted": "Area deleted.",
+    "inUse": "Area is used by residents, cannot delete."
+  },
   "ship": {
     "title": "Ship to Collector",
     "subtitle": "Record outbound load and issue a digital note.",

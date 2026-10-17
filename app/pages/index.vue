@@ -17,14 +17,18 @@ const fmtTime = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'A
 
 const { data: dash, status } = await useAsyncData('dash', async () => {  const [depRes, profRes, ledgerRes, itemsRes, catsRes] = await Promise.all([
     client.from('deposits').select('id,resident_id,total_weight,total_value,deposited_at').eq('status', 'tercatat'),
-    client.from('profiles').select('id,full_name,rt,rw').eq('role', 'warga'),
+    client.from('profiles').select('id,full_name,area:areas!profiles_area_id_fkey(rw,rt)').eq('role', 'warga'),
     client.from('savings_ledger').select('resident_id,type,amount'),
     client.from('deposit_items').select('deposit_id,category_id,weight_kg'),
     client.from('waste_categories').select('id,name'),
   ])
   return {
     deposits: depRes.data ?? [],
-    residents: new Map((profRes.data ?? []).map(p => [p.id, p])),
+    residents: new Map((profRes.data ?? []).map(p => [p.id, {
+      full_name: p.full_name,
+      rw: (p.area as unknown as { rw: string, rt: string } | null)?.rw ?? null,
+      rt: (p.area as unknown as { rw: string, rt: string } | null)?.rt ?? null,
+    }])),
     ledger: ledgerRes.data ?? [],
     items: itemsRes.data ?? [],
     catNames: new Map((catsRes.data ?? []).map(c => [c.id, c.name])),

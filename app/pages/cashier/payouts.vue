@@ -17,7 +17,7 @@ const filter = ref('menunggu')
 const { data: rows, status, refresh } = await useAsyncData('payouts', async () => {
   const { data } = await client
     .from('withdrawals')
-    .select('id,resident_id,amount,status,created_at,resident:profiles!withdrawals_resident_id_fkey(full_name,rt)')
+    .select('id,resident_id,amount,status,created_at,resident:profiles!withdrawals_resident_id_fkey(full_name,area:areas!profiles_area_id_fkey(rw,rt))')
     .order('created_at', { ascending: false })
     .limit(50)
   return data ?? []
@@ -71,6 +71,13 @@ async function decide(row: Row, approved: boolean) {
 }
 
 const statusColor = (s: string) => s === 'disetujui' ? 'success' : s === 'ditolak' ? 'error' : 'warning'
+
+function residentLabel(resident: unknown) {
+  const r = resident as { full_name: string, area: { rw: string, rt: string } | null } | null
+  if (!r) return '-'
+  const area = r.area ? ` · ${r.area.rw} · ${r.area.rt}` : ''
+  return `${r.full_name}${area}`
+}
 </script>
 
 <template>
@@ -100,7 +107,7 @@ const statusColor = (s: string) => s === 'disetujui' ? 'success' : s === 'ditola
       <p class="text-sm text-muted mb-4">{{ $t('payouts.subtitle') }}</p>
       <UTable :data="visible" :columns="columns" :loading="status === 'pending'">
         <template #resident-cell="{ row }">
-          {{ (row.original.resident as unknown as { full_name: string, rt: string } | null)?.full_name ?? '-' }}
+          {{ residentLabel(row.original.resident) }}
         </template>
         <template #amount-cell="{ row }">
           <span class="tabular-nums font-bold">{{ fmtRp.format(Number(row.original.amount)) }}</span>
