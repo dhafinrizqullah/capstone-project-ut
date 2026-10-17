@@ -10,6 +10,32 @@ html.dark {
 }
 
 /*
+ * Colour-mode flip: the class is on <html> only while the modes change (see
+ * app/plugins/head.ts), so surfaces tween instead of snapping — and hovers stay
+ * instant the rest of the time. Properties are listed, never `all`.
+ */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color 250ms ease,
+    border-color 250ms ease,
+    color 250ms ease,
+    fill 250ms ease,
+    stroke 250ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-switching,
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
+  }
+}
+
+/*
  * Page entrance motion. A Vue page transition can't wrap these pages:
  * UDashboardPanel renders a fragment (root div + resize-handle slot), so Vue
  * refuses to animate it. Animate the panel body's children instead.
