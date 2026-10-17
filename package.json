@@ -9,6 +9,8 @@
     "preview": "nuxt preview",
     "lint": "eslint .",
     "test": "vitest run",
+    "db:seed": "node --env-file=.env scripts/seed-users.mjs",
+    "db:push": "supabase db push",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
