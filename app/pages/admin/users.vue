@@ -14,6 +14,14 @@ const { data: rows, refresh } = await useAsyncData('admin-users', async () => {
   return data ?? []
 })
 
+// ponytail: area suggestions come from existing data, but new RW/RT can be typed
+const { data: areas } = await useAsyncData('admin-areas', async () => {
+  const { data } = await client.from('profiles').select('rt,rw').limit(500)
+  const rws = [...new Set((data ?? []).map(p => p.rw).filter(Boolean))].sort() as string[]
+  const rts = [...new Set((data ?? []).map(p => p.rt).filter(Boolean))].sort() as string[]
+  return { rws: rws.length ? rws : ['RW 05'], rts: rts.length ? rts : ['RT 01', 'RT 02', 'RT 03'] }
+})
+
 type Row = NonNullable<typeof rows.value>[number]
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'full_name', header: () => t('users.colName') },
@@ -89,11 +97,11 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
             <UFormField name="role" :label="$t('users.role')" required>
               <USelect v-model="state.role" :items="roleItems" value-key="value" class="w-full" />
             </UFormField>
-            <UFormField v-if="state.role === 'warga'" name="rt" :label="$t('users.rt')">
-              <UInput v-model="state.rt" placeholder="RT 01…" class="w-full" />
-            </UFormField>
             <UFormField name="rw" :label="$t('users.colRw')" required>
-              <UInput v-model="state.rw" placeholder="RW 05…" class="w-full" />
+              <UInputMenu v-model="state.rw" :items="areas?.rws ?? []" create-item class="w-full" />
+            </UFormField>
+            <UFormField v-if="state.role === 'warga'" name="rt" :label="$t('users.rt')">
+              <UInputMenu v-model="state.rt" :items="areas?.rts ?? []" create-item class="w-full" />
             </UFormField>
             <UButton type="submit" :loading="creating" :label="$t('users.create')" block />
           </UForm>

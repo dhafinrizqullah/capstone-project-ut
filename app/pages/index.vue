@@ -123,7 +123,8 @@ const recent = computed(() => {
     return {
       id: d.id,
       time: fmtTime.value.format(new Date(d.deposited_at)),
-      name: `${prof?.rt ?? '?'} - ${prof?.full_name ?? '?'}`,
+      // ponytail: person first, then area hierarchy (RW before RT)
+      name: prof ? `${prof.full_name} · ${prof.rw ?? '?'} · ${prof.rt ?? '?'}` : '?',
       type: first ? (dash.value?.catNames.get(first.category_id) ?? '-') : '-',
       weight: fmtKg(Number(d.total_weight)),
       value: fmtRp.value.format(Number(d.total_value)),
