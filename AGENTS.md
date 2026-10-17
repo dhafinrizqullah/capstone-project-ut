@@ -39,6 +39,13 @@ Project skills live under `.agents/skills/`. Load the relevant one before work:
 - Supabase: `supabase`, `supabase-postgres-best-practices`
 - Testing: `vitest`, `vue-testing-best-practices`
 
+## Environment
+
+- Never read, write, or modify `.env`. Treat it as off-limits.
+- Only `.env.example` may be read or edited; use it as the source of truth for variable names.
+- Keep `.env` gitignored. Commit `.env.example` with placeholder values only.
+- Secrets stay server-only via `runtimeConfig`; client-exposed values use `NUXT_PUBLIC_*`.
+
 ## Notes
 
 - No production secrets in the repo; use `.env` (gitignored).
