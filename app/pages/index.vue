@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
-definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengurus_rw'] })
+definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['pengurus_rw', 'superadmin'] })
 
 const { locale, t } = useI18n()
 const client = useSupabaseClient<Database>()
@@ -15,11 +15,10 @@ const fmtKg = (v: number) => `${fmtInt.value.format(v)} kg`
 const fmtMonth = computed(() => new Intl.DateTimeFormat(tag.value, { month: 'short' }))
 const fmtTime = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
 
-const { data: dash, status } = await useAsyncData('dash', async () => {
-  const [depRes, profRes, ledgerRes, itemsRes, catsRes] = await Promise.all([
+const { data: dash, status } = await useAsyncData('dash', async () => {  const [depRes, profRes, ledgerRes, itemsRes, catsRes] = await Promise.all([
     client.from('deposits').select('id,resident_id,total_weight,total_value,deposited_at').eq('status', 'tercatat'),
     client.from('profiles').select('id,full_name,rt').eq('role', 'warga'),
-    client.from('savings_ledger').select('type,amount'),
+    client.from('savings_ledger').select('resident_id,type,amount'),
     client.from('deposit_items').select('deposit_id,category_id,weight_kg'),
     client.from('waste_categories').select('id,name'),
   ])
@@ -34,14 +33,33 @@ const { data: dash, status } = await useAsyncData('dash', async () => {
 
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
 
-const totalKg = computed(() => (dash.value?.deposits ?? []).reduce((s, d) => s + Number(d.total_weight), 0))
-const balance = computed(() => (dash.value?.ledger ?? []).reduce((s, l) => s + (l.type === 'kredit' ? Number(l.amount) : -Number(l.amount)), 0))
+// ponytail: superadmin sees everything with an RT filter; single-RW scope for now
+const { data: myRole } = await useAsyncData('dash-role', async () => {
+  const { data } = await client.from('profiles').select('role').eq('id', useMyId()).maybeSingle()
+  return data?.role ?? null
+})
+const rtFilter = ref('all')
+const rtOptions = computed(() => {
+  const rts = [...new Set([...(dash.value?.residents.values() ?? [])].map(p => p.rt ?? '?'))].sort()
+  return [{ label: t('common.all'), value: 'all' }, ...rts.map(rt => ({ label: rt, value: rt }))]
+})
+const rtOf = (residentId: string) => dash.value?.residents.get(residentId)?.rt ?? '?'
+const inRt = (residentId: string) => rtFilter.value === 'all' || rtOf(residentId) === rtFilter.value
+const fDeposits = computed(() => (dash.value?.deposits ?? []).filter(d => inRt(d.resident_id)))
+const fDepositIds = computed(() => new Set(fDeposits.value.map(d => d.id)))
+const fItems = computed(() => (dash.value?.items ?? []).filter(i => fDepositIds.value.has(i.deposit_id)))
+const fLedger = computed(() => (dash.value?.ledger ?? []).filter(l => inRt(l.resident_id)))
+
+const totalKg = computed(() => fDeposits.value.reduce((s, d) => s + Number(d.total_weight), 0))
+const balance = computed(() => fLedger.value.reduce((s, l) => s + (l.type === 'kredit' ? Number(l.amount) : -Number(l.amount)), 0))
+
+const fResidents = computed(() => [...(dash.value?.residents.values() ?? [])].filter(p => rtFilter.value === 'all' || (p.rt ?? '?') === rtFilter.value))
 
 const kpis = computed(() => [
   { label: t('dash.kpiWaste'), value: `${fmtTon.value.format(totalKg.value / 1000)} ton` },
-  { label: t('dash.kpiResidents'), value: fmtInt.value.format(dash.value?.residents.size ?? 0) },
+  { label: t('dash.kpiResidents'), value: fmtInt.value.format(fResidents.value.length) },
   { label: t('dash.kpiBalance'), value: fmtRpCompact.value.format(balance.value) },
-  { label: t('dash.kpiCount'), value: fmtInt.value.format(dash.value?.deposits.length ?? 0) },
+  { label: t('dash.kpiCount'), value: fmtInt.value.format(fDeposits.value.length) },
 ])
 
 // 6 bulan terakhir
@@ -52,7 +70,7 @@ const trend = computed(() => {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     buckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: fmtMonth.value.format(d), kg: 0 })
   }
-  for (const dep of dash.value?.deposits ?? []) {
+  for (const dep of fDeposits.value) {
     const d = new Date(dep.deposited_at)
     const b = buckets.find(b => b.key === `${d.getFullYear()}-${d.getMonth()}`)
     if (b) b.kg += Number(dep.total_weight)
@@ -62,7 +80,7 @@ const trend = computed(() => {
 
 const composition = computed(() => {
   const byCat = new Map<string, number>()
-  for (const it of dash.value?.items ?? []) {
+  for (const it of fItems.value) {
     const name = dash.value?.catNames.get(it.category_id) ?? '?'
     byCat.set(name, (byCat.get(name) ?? 0) + Number(it.weight_kg))
   }
@@ -71,20 +89,20 @@ const composition = computed(() => {
 
 const perRt = computed(() => {
   const byRt = new Map<string, number>()
-  for (const dep of dash.value?.deposits ?? []) {
-    const rt = dash.value?.residents.get(dep.resident_id)?.rt ?? '?'
+  for (const dep of fDeposits.value) {
+    const rt = rtOf(dep.resident_id)
     byRt.set(rt, (byRt.get(rt) ?? 0) + Number(dep.total_weight))
   }
   return [...byRt.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([rt, kg]) => ({ rt, kg }))
 })
 
 const recent = computed(() => {
-  const deps = [...(dash.value?.deposits ?? [])]
+  const deps = [...fDeposits.value]
     .sort((a, b) => +new Date(b.deposited_at) - +new Date(a.deposited_at))
     .slice(0, 4)
   return deps.map((d) => {
     const prof = dash.value?.residents.get(d.resident_id)
-    const first = (dash.value?.items ?? []).find(i => i.deposit_id === d.id)
+    const first = fItems.value.find(i => i.deposit_id === d.id)
     return {
       id: d.id,
       time: fmtTime.value.format(new Date(d.deposited_at)),
@@ -191,7 +209,17 @@ onUnmounted(() => charts.forEach(c => c.destroy()))
     </template>
 
     <template #body>
-      <p class="text-sm text-muted mb-4">{{ $t('dash.subtitle') }}</p>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <p class="text-sm text-muted">{{ $t('dash.subtitle') }}</p>
+        <USelect
+          v-if="myRole === 'superadmin'"
+          v-model="rtFilter"
+          :items="rtOptions"
+          value-key="value"
+          :aria-label="$t('users.colRt')"
+          class="w-44"
+        />
+      </div>
 
       <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
         <USkeleton v-for="i in 4" :key="i" class="h-28 rounded-2xl" />

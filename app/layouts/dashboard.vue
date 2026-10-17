@@ -24,10 +24,12 @@ interface NavItem {
 }
 
 const items = computed<NavItem[]>(() => {
+  // ponytail: superadmin sees every menu (role gate still enforced per page)
+  const all = role.value === 'superadmin'
   const main: NavItem[] = []
-  if (role.value === 'pengurus_rw') main.push({ label: t('nav.dashboard'), icon: 'i-lucide-chart-column', to: '/' })
-  if (role.value === 'warga') main.push({ label: t('nav.resident'), icon: 'i-lucide-house', to: '/resident' })
-  if (role.value === 'petugas') {
+  if (role.value === 'pengurus_rw' || all) main.push({ label: t('nav.dashboard'), icon: 'i-lucide-chart-column', to: '/' })
+  if (role.value === 'warga' || all) main.push({ label: t('nav.resident'), icon: 'i-lucide-house', to: '/resident' })
+  if (role.value === 'petugas' || all) {
     main.push(
       { label: t('nav.cashier'), icon: 'i-lucide-scale', to: '/cashier' },
       { label: t('nav.prices'), icon: 'i-lucide-tags', to: '/cashier/prices' },
@@ -35,8 +37,8 @@ const items = computed<NavItem[]>(() => {
       { label: t('nav.shipments'), icon: 'i-lucide-truck', to: '/cashier/shipments' },
     )
   }
-  if (role.value === 'pengepul') main.push({ label: t('nav.handover'), icon: 'i-lucide-clipboard-check', to: '/handover' })
-  if (role.value === 'pengurus_rw') main.push({ label: t('nav.report'), icon: 'i-lucide-file-down', to: '/report' })
+  if (role.value === 'pengepul' || all) main.push({ label: t('nav.handover'), icon: 'i-lucide-clipboard-check', to: '/handover' })
+  if (role.value === 'pengurus_rw' || all) main.push({ label: t('nav.report'), icon: 'i-lucide-file-down', to: '/report' })
   if (role.value === 'superadmin') main.push({ label: t('nav.users'), icon: 'i-lucide-users', to: '/admin/users' })
   return main
 })

@@ -28,6 +28,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     .maybeSingle()
 
   if (!data || !allowed.includes(data.role)) {
+    // ponytail: superadmin passes every role gate (checked again: role came from profiles, not client input)
+    if (data?.role === 'superadmin') return
     return navigateTo(data ? (HOME_BY_ROLE[data.role] ?? '/login') : '/login')
   }
 })

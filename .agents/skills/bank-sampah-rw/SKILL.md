@@ -47,7 +47,7 @@ New page checklist: `definePageMeta({ layout: 'dashboard', middleware: ['auth', 
 
 - Supabase Auth only (bcrypt built in) — never store passwords, no `password` column anywhere.
 - Role comes from `profiles.role` post-login, NEVER from client input (no role dropdown on login).
-- `app/middleware/role.ts` enforces `allowedRoles`; `HOME_BY_ROLE` there is the single home map. Login redirects through it.
+- `app/middleware/role.ts` enforces `allowedRoles`; `HOME_BY_ROLE` there is the single home map. Login redirects through it. `superadmin` passes every role gate (middleware + `superadmin_all` RLS), sees all sidebar menus, and gets an RT filter on `/`.
 - User creation (any role incl. `superadmin`) ONLY via `server/api/admin/users.post.ts` with `serverSupabaseServiceRole` — service key never leaves the server. Caller must be `superadmin` (checked via user-context client).
 - `useSupabaseUser()` holds **JWT claims, not the user object** — id is `.sub`. Always use the `useMyId()` composable, never `user.value.id`.
 
