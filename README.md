@@ -54,6 +54,7 @@ pnpm db:seed   # (dev) create/refresh the 4 demo accounts (one per role)
 - `pnpm dev` - start dev server
 - `pnpm build` - production build
 - `pnpm test` - run tests
+- `pnpm test:e2e` - run E2E suite (needs `pnpm dev` running)
 - `pnpm lint` - lint code
 - `pnpm db:push` - apply pending Supabase migrations
 - `pnpm db:seed` - (dev) seed 4 demo accounts, one per role

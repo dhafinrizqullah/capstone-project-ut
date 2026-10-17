@@ -17,7 +17,7 @@ pnpm db:push   # apply supabase/migrations
 pnpm db:seed   # dev demo accounts (see scripts/seed-users.mjs)
 ```
 
-Gates before finishing: `pnpm lint`, `pnpm test`, `pnpm build` all green. Never install a new dependency for what the stack already does.
+Gates before finishing: `pnpm lint`, `pnpm test`, `pnpm build` all green. E2E (`pnpm test:e2e`, needs `pnpm dev` running): deterministic `tests/*.e2e.ts` via `tester-army/e2e`, gateway `none` (no model key). Always `waitHydrated` (Vue `#__nuxt.__vue_app__`) before tapping — dev hydration is slow and early taps natively submit. Never install a new dependency for what the stack already does.
 
 ## Language rule (strict)
 
