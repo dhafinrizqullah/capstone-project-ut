@@ -13,6 +13,12 @@
       "skillPath": "skills/comark/SKILL.md",
       "computedHash": "d867c2d3e33a6c1c351765b834c9dd71b61acc9c21b1348b7562dd871397f025"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576"
+    },
     "nitro": {
       "source": "onmax/nuxt-skills",
       "sourceType": "github",
@@ -168,6 +174,12 @@
       "sourceType": "github",
       "skillPath": "skills/vueuse-functions/SKILL.md",
       "computedHash": "69a1d8d44fe336f8d5f06f075be8b22c7847d818ad4d15b0605baa45674bf758"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a"
     }
   }
 }
