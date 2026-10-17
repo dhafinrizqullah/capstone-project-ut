@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* Native widgets (scrollbars, form controls, autofill) follow the theme. */
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
 /*
  * Page entrance motion. A Vue page transition can't wrap these pages:
  * UDashboardPanel renders a fragment (root div + resize-handle slot), so Vue

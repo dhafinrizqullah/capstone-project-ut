@@ -19,6 +19,9 @@ describe('dark mode', () => {
     await expect(screen.getByText('Total Sampah Terkumpul')).toBeVisible();
     const darkCard = await browser.evaluate(CARD_BG) as string;
     await expect(darkCard).not.toBe('rgb(255, 255, 255)');
+    // native widgets and the browser chrome follow too
+    await expect(await browser.evaluate(`getComputedStyle(document.documentElement).colorScheme`)).toBe('dark');
+    await expect(await browser.evaluate(`document.querySelector('meta[name="theme-color"]').content`)).not.toBe('');
 
     // the preference is stored, so a fresh load stays dark
     await app.open('/');
@@ -31,5 +34,6 @@ describe('dark mode', () => {
     await expect(screen.getByText('Total Sampah Terkumpul')).toBeVisible();
     const lightCard = await browser.evaluate(CARD_BG) as string;
     await expect(lightCard).toBe('rgb(255, 255, 255)');
+    await expect(await browser.evaluate(`getComputedStyle(document.documentElement).colorScheme`)).toBe('light');
   });
 });
