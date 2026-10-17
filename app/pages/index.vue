@@ -140,11 +140,20 @@ const categoryCanvas = ref<HTMLCanvasElement | null>(null)
 const rtCanvas = ref<HTMLCanvasElement | null>(null)
 let charts: { destroy(): void }[] = []
 
+// Chart.js paints on canvas: read the theme's own variables so the grid and
+// labels stay readable in both modes (values resolve per mode, not per class).
+function cssColor(name: string, fallback: string) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return value || fallback
+}
+
 async function drawCharts() {
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
   charts.forEach(c => c.destroy())
   charts = []
+  const grid = cssColor('--ui-border-muted', '#e8f0ea')
+  const label = cssColor('--ui-text-muted', '#64748b')
   if (trendCanvas.value) {
     charts.push(new Chart(trendCanvas.value, {
       type: 'line',
@@ -165,8 +174,8 @@ async function drawCharts() {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, grid: { color: '#e8f0ea' } },
-          x: { grid: { display: false } },
+          y: { beginAtZero: true, grid: { color: grid }, ticks: { color: label } },
+          x: { grid: { display: false }, ticks: { color: label } },
         },
       },
     }))
@@ -186,7 +195,7 @@ async function drawCharts() {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '68%',
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true } } },
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, color: label } } },
       },
     }))
   }
@@ -206,17 +215,26 @@ async function drawCharts() {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, grid: { color: '#e8f0ea' } },
-          x: { grid: { display: false } },
+          y: { beginAtZero: true, grid: { color: grid }, ticks: { color: label } },
+          x: { grid: { display: false }, ticks: { color: label } },
         },
       },
     }))
   }
 }
 
-onMounted(drawCharts)
+let themeObserver: MutationObserver | null = null
+onMounted(() => {
+  drawCharts()
+  // the colour mode flips a class on <html>: repaint the canvases with the new vars
+  themeObserver = new MutationObserver(drawCharts)
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+})
 watch([trend, composition, perRt], drawCharts)
-onUnmounted(() => charts.forEach(c => c.destroy()))
+onUnmounted(() => {
+  themeObserver?.disconnect()
+  charts.forEach(c => c.destroy())
+})
 </script>
 
 <template>
@@ -252,35 +270,35 @@ onUnmounted(() => charts.forEach(c => c.destroy()))
 
       <template v-else>
         <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
-          <article v-for="kpi in kpis" :key="kpi.label" class="bg-white border border-emerald-100 rounded-2xl p-5 shadow-sm">
-            <div class="text-sm font-semibold text-slate-500">{{ kpi.label }}</div>
+          <article v-for="kpi in kpis" :key="kpi.label" class="bg-default border border-default rounded-2xl p-5 shadow-sm">
+            <div class="text-sm font-semibold text-muted">{{ kpi.label }}</div>
             <div class="text-3xl font-extrabold tracking-tight mt-2 mb-1 tabular-nums">{{ kpi.value }}</div>
           </article>
         </section>
 
         <section class="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-4 mb-5">
-          <article class="bg-white border border-emerald-100 rounded-2xl p-5 shadow-sm">
+          <article class="bg-default border border-default rounded-2xl p-5 shadow-sm">
             <h2 class="font-bold mb-3">{{ $t('dash.trend') }}</h2>
             <div class="h-72"><canvas ref="trendCanvas" /></div>
           </article>
-          <article class="bg-white border border-emerald-100 rounded-2xl p-5 shadow-sm">
+          <article class="bg-default border border-default rounded-2xl p-5 shadow-sm">
             <h2 class="font-bold mb-3">{{ $t('dash.composition') }}</h2>
             <div class="h-72"><canvas ref="categoryCanvas" /></div>
           </article>
         </section>
 
-        <section class="bg-white border border-emerald-100 rounded-2xl p-5 shadow-sm mb-5">
+        <section class="bg-default border border-default rounded-2xl p-5 shadow-sm mb-5">
           <h2 class="font-bold mb-3">{{ $t('dash.perRt') }}</h2>
           <div class="h-64"><canvas ref="rtCanvas" /></div>
         </section>
 
-        <section class="bg-white border border-emerald-100 rounded-2xl p-5 shadow-sm">
+        <section class="bg-default border border-default rounded-2xl p-5 shadow-sm">
           <h2 class="font-bold mb-3">{{ $t('dash.recent') }}</h2>
-          <p v-if="!recent.length" class="text-sm text-slate-500">{{ $t('common.empty') }}</p>
+          <p v-if="!recent.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
           <div v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="text-left text-slate-500 text-xs uppercase tracking-wide">
+                <tr class="text-left text-muted text-xs uppercase tracking-wide">
                   <th class="py-2 px-2">{{ $t('dash.colTime') }}</th>
                   <th class="py-2 px-2">{{ $t('dash.colResident') }}</th>
                   <th class="py-2 px-2">{{ $t('dash.colType') }}</th>
@@ -290,7 +308,7 @@ onUnmounted(() => charts.forEach(c => c.destroy()))
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in recent" :key="row.id" class="border-t border-emerald-50">
+                <tr v-for="row in recent" :key="row.id" class="border-t border-muted">
                   <td class="py-2 px-2">{{ row.time }}</td>
                   <td class="py-2 px-2">{{ row.name }}</td>
                   <td class="py-2 px-2">{{ row.type }}</td>

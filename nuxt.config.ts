@@ -17,9 +17,10 @@ export default defineNuxtConfig({
     detectBrowserLanguage: false,
   },
   css: ['~/assets/css/main.css'],
-  // ponytail: light-only mockup — pin to light, dark mode if ever requested
+  // follows the OS by default; users can override with the sidebar toggle
   colorMode: {
-    preference: 'light',
+    preference: 'system',
+    fallback: 'light',
     storageKey: 'banksampah-color-mode',
   },
   compatibilityDate: '2025-07-15',

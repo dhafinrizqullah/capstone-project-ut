@@ -117,39 +117,43 @@ async function logout() {
       <template #footer="{ collapsed }">
         <div class="flex w-full flex-col gap-2">
           <!-- One tap, no dropdown: two locales fit side by side -->
-          <div
-            v-if="!collapsed"
-            class="relative flex rounded-xl bg-white/10 p-1 text-xs font-semibold"
-            role="group"
-            :aria-label="$t('common.language')"
-          >
-            <span
-              aria-hidden="true"
-              class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-white shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
-              :style="{ transform: `translateX(${localeIndex * 100}%)` }"
-            />
-            <button
-              v-for="l in locales"
-              :key="l.code"
-              type="button"
-              class="relative flex-1 rounded-lg px-2 py-1.5 transition-colors duration-200 motion-reduce:transition-none"
-              :class="locale === l.code ? 'text-emerald-900' : 'text-emerald-100 hover:text-white'"
-              :aria-pressed="locale === l.code"
-              @click="setLocale(l.code)"
+          <div v-if="!collapsed" class="flex items-center gap-1.5">
+            <div
+              class="relative flex flex-1 rounded-xl bg-white/10 p-1 text-xs font-semibold"
+              role="group"
+              :aria-label="$t('common.language')"
             >
-              {{ l.name }}
-            </button>
+              <span
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-white shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
+                :style="{ transform: `translateX(${localeIndex * 100}%)` }"
+              />
+              <button
+                v-for="l in locales"
+                :key="l.code"
+                type="button"
+                class="relative flex-1 rounded-lg px-2 py-1.5 transition-colors duration-200 motion-reduce:transition-none"
+                :class="locale === l.code ? 'text-emerald-900' : 'text-emerald-100 hover:text-white'"
+                :aria-pressed="locale === l.code"
+                @click="setLocale(l.code)"
+              >
+                {{ l.name }}
+              </button>
+            </div>
+            <UColorModeButton class="text-emerald-50 hover:bg-white/10 hover:text-white" />
           </div>
-          <UButton
-            v-else
-            icon="i-lucide-globe"
-            color="neutral"
-            variant="ghost"
-            class="text-white hover:bg-white/10"
-            :aria-label="$t('common.language')"
-            :title="`${$t('common.language')}: ${otherLocale?.name}`"
-            @click="setLocale(otherLocale?.code ?? 'id')"
-          />
+          <div v-else class="flex flex-col items-center gap-2">
+            <UButton
+              icon="i-lucide-globe"
+              color="neutral"
+              variant="ghost"
+              class="text-white hover:bg-white/10"
+              :aria-label="$t('common.language')"
+              :title="`${$t('common.language')}: ${otherLocale?.name}`"
+              @click="setLocale(otherLocale?.code ?? 'id')"
+            />
+            <UColorModeButton class="text-emerald-50 hover:bg-white/10 hover:text-white" />
+          </div>
           <div v-if="!collapsed" class="rounded-2xl bg-white/10 p-4 text-sm">
             <strong class="block truncate text-white">{{ profile?.full_name }}</strong>
             <UButton

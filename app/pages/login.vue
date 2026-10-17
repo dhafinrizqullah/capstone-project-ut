@@ -88,18 +88,18 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
       </div>
     </section>
 
-    <div class="flex items-center justify-center bg-emerald-50 p-5 sm:p-6 lg:p-10">
-      <div class="w-full max-w-md bg-white border border-emerald-100 rounded-3xl shadow-2xl p-6 sm:p-8">
+    <div class="flex items-center justify-center bg-emerald-50 p-5 sm:p-6 lg:p-10 dark:bg-emerald-950/40">
+      <div class="w-full max-w-md bg-default border border-default rounded-3xl shadow-2xl p-6 sm:p-8">
         <!-- the hero carries the brand from lg up; smaller screens keep a compact mark -->
         <div class="mb-6 flex items-center gap-2.5 lg:hidden">
           <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white" aria-hidden="true">
             <UIcon name="i-lucide-recycle" class="size-5" />
           </span>
-          <span class="text-sm font-extrabold text-emerald-950">{{ $t('brand') }}</span>
+          <span class="text-sm font-extrabold text-highlighted">{{ $t('brand') }}</span>
         </div>
 
-        <h2 class="text-2xl font-extrabold tracking-tight mb-1 text-slate-900">{{ $t('auth.title') }}</h2>
-        <p class="text-slate-500 mb-6">{{ $t('auth.subtitle') }}</p>
+        <h2 class="text-2xl font-extrabold tracking-tight mb-1 text-highlighted">{{ $t('auth.title') }}</h2>
+        <p class="text-muted mb-6">{{ $t('auth.subtitle') }}</p>
 
         <UForm :schema="loginSchema" :state="state" class="space-y-4" @submit="onSubmit">
           <UFormField name="email" :label="$t('auth.email')" required>
@@ -147,7 +147,7 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
           />
         </UForm>
 
-        <p class="text-center text-sm text-slate-500 mt-6">
+        <p class="text-center text-sm text-muted mt-6">
           {{ $t('auth.noAccount') }}
         </p>
       </div>
