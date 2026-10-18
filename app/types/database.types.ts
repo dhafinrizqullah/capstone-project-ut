@@ -108,30 +108,39 @@ export type Database = {
       deposits: {
         Row: {
           deposited_at: string
+          estimated_weight: number | null
           id: string
           operator_id: string
           resident_id: string
           status: string
           total_value: number
           total_weight: number
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           deposited_at?: string
+          estimated_weight?: number | null
           id?: string
           operator_id: string
           resident_id: string
           status?: string
           total_value?: number
           total_weight?: number
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           deposited_at?: string
+          estimated_weight?: number | null
           id?: string
           operator_id?: string
           resident_id?: string
           status?: string
           total_value?: number
           total_weight?: number
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {

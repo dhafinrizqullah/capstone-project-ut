@@ -32,6 +32,7 @@ const items = computed<NavItem[]>(() => {
   if (role.value === 'petugas' || all) {
     main.push(
       { label: t('nav.cashier'), icon: 'i-lucide-scale', to: '/cashier' },
+      { label: t('nav.verify'), icon: 'i-lucide-clipboard-list', to: '/cashier/verify' },
       { label: t('nav.prices'), icon: 'i-lucide-tags', to: '/cashier/prices' },
       { label: t('nav.payouts'), icon: 'i-lucide-badge-check', to: '/cashier/payouts' },
       { label: t('nav.shipments'), icon: 'i-lucide-truck', to: '/cashier/shipments' },

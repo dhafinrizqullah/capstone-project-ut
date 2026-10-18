@@ -142,6 +142,46 @@ describe('warga', () => {
   });
 });
 
+describe('self-service drop-off', () => {
+  test('a resident declares a weight, the operator re-weighs it, the final weight stands', async ({ app, screen, browser }) => {
+    // A. the resident drops off at home and declares the weight
+    await signInAs(app, screen, browser, 'warga');
+    await screen.getByLabel('Kategori').tap();
+    await screen.getByRole('option', /Organik/).tap();
+    await screen.getByLabel('Berat (kg)').fill('7,7');
+    await screen.getByRole('button', 'Tambah ke daftar').tap();
+    await expect(screen.getByText('7,7 kg').first()).toBeVisible();
+    await screen.getByRole('button', 'Kirim Setoran').tap();
+    await expect(screen.getByText('Setoran terkirim, menunggu verifikasi petugas RW.')).toBeVisible();
+
+    // pending, still at the declared weight, nothing credited yet
+    await expect(screen.getByRole('row', /7,7 kg[\s\S]*Menunggu/)).toBeVisible();
+
+    // B. the operator re-weighs it before it counts
+    await screen.getByRole('button', 'Keluar').tap();
+    await expect(browser).toHaveURL('/login', { timeout: 60000 });
+    await signInAs(app, screen, browser, 'petugas');
+    await openPage(app, browser, '/cashier/verify');
+
+    // newest pending request of this resident (leftovers of a crashed run sort first)
+    const request = screen.getByRole('row', /Budi Santoso/).last();
+    await expect(request.getByText('7,7 kg')).toBeVisible();
+    await request.getByRole('button', 'Verifikasi').tap();
+
+    const dialog = screen.getByRole('dialog');
+    await expect(dialog.getByText(/Berat diajukan warga: 7,7 kg/)).toBeVisible();
+    await dialog.getByLabel('Organik').fill('8,8');
+    await dialog.getByRole('button', 'Simpan Hasil Timbang').tap();
+    await expect(screen.getByText('Setoran diverifikasi, saldo warga bertambah.')).toBeVisible();
+
+    // C. the resident only ever sees the final weight (newest row, rows are newest-first)
+    await screen.getByRole('button', 'Keluar').tap();
+    await expect(browser).toHaveURL('/login', { timeout: 60000 });
+    await signInAs(app, screen, browser, 'warga');
+    await expect(screen.getByRole('row', /8,8 kg[\s\S]*Tercatat/).first()).toBeVisible();
+  });
+});
+
 describe('pengepul', () => {
   test('opens a handover note and reads its items', async ({ app, screen, browser }) => {
     await signInAs(app, screen, browser, 'pengepul'); // lands on /handover
