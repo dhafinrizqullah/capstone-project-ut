@@ -11,6 +11,7 @@ const { scopeRw } = await useMyScope()
 
 const tag = computed(() => (locale.value === 'id' ? 'id-ID' : 'en-US'))
 const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }))
+const fmtKg = (v: number) => `${new Intl.NumberFormat(tag.value, { maximumFractionDigits: 1 }).format(v)} kg`
 
 const { data } = await useAsyncData('cashier-refs', async () => {
   const [residents, cats] = await Promise.all([
@@ -32,7 +33,11 @@ const { data } = await useAsyncData('cashier-refs', async () => {
 
 const residentId = ref<string>()
 const categoryId = ref<number>()
-const weightKg = ref<number>()
+// ponytail: a text field, not a number field — a number field parses with the app
+// locale, so "2.3" (dot, what a keyboard gives you) landed as 23 kg, and its step
+// grid snapped every typed weight onto min + n·step
+const weightText = ref('')
+const weightKg = computed(() => parseWeightKg(weightText.value))
 const items = ref<{ categoryId: number, name: string, weightKg: number, price: number, value: number }[]>([])
 const saving = ref(false)
 
@@ -46,11 +51,15 @@ const totalKg = computed(() => items.value.reduce((s, i) => s + i.weightKg, 0))
 
 function addItem() {
   const cat = (data.value?.cats ?? []).find(c => c.id === categoryId.value)
-  if (!cat || !weightKg.value || weightKg.value <= 0) return
+  if (!cat) return
+  if (!weightKg.value) {
+    toast.add({ title: t('cashier.needWeight'), color: 'warning' })
+    return
+  }
   const price = Number(cat.price_per_kg)
   items.value.push({ categoryId: cat.id, name: cat.name, weightKg: weightKg.value, price, value: Math.round(weightKg.value * price) })
   categoryId.value = undefined
-  weightKg.value = undefined
+  weightText.value = ''
 }
 
 function removeItem(idx: number) {
@@ -140,7 +149,7 @@ async function submit() {
                 />
               </UFormField>
               <UFormField name="weight" :label="$t('cashier.weightKg')">
-                <UInputNumber v-model="weightKg" :min="0.1" :step="0.5" class="w-full" />
+                <UInput v-model="weightText" inputmode="decimal" :placeholder="$t('cashier.weightPlaceholder')" class="w-full" />
               </UFormField>
               <UButton icon="i-lucide-plus" :label="$t('cashier.addItem')" @click="addItem" />
             </div>
@@ -157,7 +166,7 @@ async function submit() {
           <p v-if="!items.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
           <ul v-else class="grid gap-2 mb-4">
             <li v-for="(it, idx) in items" :key="idx" class="flex items-center justify-between gap-2 text-sm">
-              <span>{{ it.name }} · <span class="tabular-nums">{{ it.weightKg }} kg</span></span>
+              <span>{{ it.name }} · <span class="tabular-nums">{{ fmtKg(it.weightKg) }}</span></span>
               <span class="flex items-center gap-2">
                 <span class="font-bold tabular-nums">{{ fmtRp.format(it.value) }}</span>
                 <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="xs" :aria-label="it.name" @click="removeItem(idx)" />

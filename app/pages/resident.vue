@@ -73,7 +73,7 @@ const statusLabel = (s: string) => s === 'disetujui' ? t('resident.approved') : 
             </template>
             <UForm :schema="schema" :state="state" class="space-y-3" @submit="onWithdraw">
               <UFormField name="amount" :label="$t('resident.amount')" required>
-                <UInputNumber v-model="state.amount" :min="10000" :step="5000" class="w-full" />
+                <UInputNumber v-model="state.amount" :min="10000" :step="5000" :step-snapping="false" class="w-full" />
               </UFormField>
               <UButton type="submit" :loading="sending" :label="$t('resident.submitWithdraw')" block />
             </UForm>

@@ -17,6 +17,8 @@ const { data: rows, refresh } = await useAsyncData('prices', async () => {
   return data ?? []
 })
 
+const { search, page, pageSize, paged, total } = useTablePage(rows, (r, q) => r.name.toLowerCase().includes(q))
+
 type Row = NonNullable<typeof rows.value>[number]
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'name', header: () => t('prices.colName') },
@@ -77,9 +79,12 @@ async function onSave(event: FormSubmitEvent<Schema>) {
     <template #body>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
         <p class="text-sm text-muted">{{ $t('prices.subtitle') }}</p>
-        <UButton class="self-start sm:self-auto" icon="i-lucide-plus" :label="$t('prices.new')" @click="openNew" />
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+          <UButton class="self-start sm:self-auto" icon="i-lucide-plus" :label="$t('prices.new')" @click="openNew" />
+        </div>
       </div>
-      <UTable :data="rows ?? []" :columns="columns">
+      <UTable :data="paged" :columns="columns">
         <template #price_per_kg-cell="{ row }">
           <span class="tabular-nums">{{ fmtRp.format(Number(row.original.price_per_kg)) }}</span>
         </template>
@@ -95,6 +100,9 @@ async function onSave(event: FormSubmitEvent<Schema>) {
           <p class="text-sm text-muted py-6 text-center">{{ $t('common.empty') }}</p>
         </template>
       </UTable>
+      <div v-if="total > pageSize" class="flex justify-end pt-4">
+        <UPagination v-model:page="page" :items-per-page="pageSize" :total="total" />
+      </div>
 
       <UModal v-model:open="open" :title="editing ? $t('prices.edit') : $t('prices.new')">
         <template #body>
@@ -103,7 +111,7 @@ async function onSave(event: FormSubmitEvent<Schema>) {
               <UInput v-model="state.name" class="w-full" />
             </UFormField>
             <UFormField name="price_per_kg" :label="$t('prices.price')" required>
-              <UInputNumber v-model="state.price_per_kg" :min="0" :step="500" class="w-full" />
+              <UInputNumber v-model="state.price_per_kg" :min="0" :step="500" :step-snapping="false" class="w-full" />
             </UFormField>
             <UFormField name="active" :label="$t('prices.active')">
               <USwitch v-model="state.active" />

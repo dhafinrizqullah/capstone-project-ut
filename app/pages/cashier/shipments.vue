@@ -23,7 +23,9 @@ const { data: refs, refresh: refreshRefs } = await useAsyncData('ship-refs', asy
 
 const collectorId = ref<string>()
 const categoryId = ref<number>()
-const weightKg = ref<number>()
+// ponytail: text + parseWeightKg, not a number field — see the cashier page
+const weightText = ref('')
+const weightKg = computed(() => parseWeightKg(weightText.value))
 const items = ref<{ categoryId: number, name: string, weightKg: number, price: number, value: number }[]>([])
 const saving = ref(false)
 
@@ -34,11 +36,15 @@ const totalKg = computed(() => items.value.reduce((s, i) => s + i.weightKg, 0))
 
 function addItem() {
   const cat = (refs.value?.cats ?? []).find(c => c.id === categoryId.value)
-  if (!cat || !weightKg.value || weightKg.value <= 0) return
+  if (!cat) return
+  if (!weightKg.value) {
+    toast.add({ title: t('cashier.needWeight'), color: 'warning' })
+    return
+  }
   const price = Number(cat.price_per_kg)
   items.value.push({ categoryId: cat.id, name: cat.name, weightKg: weightKg.value, price, value: Math.round(weightKg.value * price) })
   categoryId.value = undefined
-  weightKg.value = undefined
+  weightText.value = ''
 }
 
 async function submit() {
@@ -111,7 +117,7 @@ async function submit() {
                 />
               </UFormField>
               <UFormField name="weight" :label="$t('ship.weightKg')">
-                <UInputNumber v-model="weightKg" :min="0.1" :step="0.5" class="w-full" />
+                <UInput v-model="weightText" inputmode="decimal" :placeholder="$t('cashier.weightPlaceholder')" class="w-full" />
               </UFormField>
               <UButton icon="i-lucide-plus" :label="$t('ship.addItem')" @click="addItem" />
             </div>

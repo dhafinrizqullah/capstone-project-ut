@@ -1,7 +1,7 @@
 import { describe, test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import type { Screen } from 'e2e';
-import { openPage, settle, signInAs } from './helpers';
+import { openPage, searchFor, settle, signInAs } from './helpers';
 
 // Every "Aktivitas Terbaru" row as one string (name · RW · RT · category · value).
 const RECENT_ROWS = `[...document.querySelectorAll('[data-slot="body"] table tbody tr')]
@@ -40,9 +40,54 @@ describe('petugas', () => {
     await screen.getByLabel('Berat (kg)').fill('2.5');
     await screen.getByRole('button', 'Tambah ke daftar').tap();
     await expect(screen.getByText(/Plastik PET/).last()).toBeVisible();
+    // the typed weight is what lands in the list: "2.5" means 2,5 kg, never 25 or 2,1
+    await expect(screen.getByText('2,5 kg')).toBeVisible();
 
     await screen.getByRole('button', 'Simpan Penimbangan').tap();
     await expect(screen.getByText('Penimbangan tersimpan, saldo warga bertambah.')).toBeVisible();
+  });
+
+  test('reads a weight typed with either separator, and refuses a non-number', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'petugas'); // lands on /cashier
+
+    await screen.getByLabel('Kategori').tap();
+    await screen.getByRole('option', /Kardus/).tap();
+
+    // the id-ID keyboard gives a comma
+    await screen.getByLabel('Berat (kg)').fill('2,5');
+    await screen.getByRole('button', 'Tambah ke daftar').tap();
+    await expect(screen.getByText('2,5 kg')).toBeVisible();
+
+    // a plain integer stays a plain integer
+    await screen.getByLabel('Kategori').tap();
+    await screen.getByRole('option', /Organik/).tap();
+    await screen.getByLabel('Berat (kg)').fill('3');
+    await screen.getByRole('button', 'Tambah ke daftar').tap();
+    await expect(screen.getByText('3 kg')).toBeVisible();
+
+    // junk is refused with a warning instead of being guessed at
+    await screen.getByLabel('Kategori').tap();
+    await screen.getByRole('option', /Kaca/).tap();
+    await screen.getByLabel('Berat (kg)').fill('dua kg');
+    await screen.getByRole('button', 'Tambah ke daftar').tap();
+    await expect(screen.getByText('Berat wajib diisi dan harus berupa angka.')).toBeVisible();
+  });
+
+  test('price field keeps the amount that was typed', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'petugas');
+    await openPage(app, browser, '/cashier/prices');
+
+    // an off-grid price must survive the field: 3.100, not the step grid's 3.000
+    await screen.getByRole('button', 'Kategori baru').tap();
+    await screen.getByLabel('Nama kategori').fill('Probe');
+    await screen.getByLabel('Harga per kg (Rp)').fill('3100');
+    await screen.getByLabel('Nama kategori').tap(); // blur applies the field value
+    const shown = await browser.evaluate(
+      `document.querySelector('[role="dialog"] input[role="spinbutton"]').value`,
+    );
+    await expect(shown).toBe('3.100');
+
+    await browser.keyboard.press('Escape'); // nothing is created by this test
   });
 
   test('sees a pending payout with both decisions available', async ({ app, screen, browser }) => {
@@ -102,8 +147,38 @@ describe('pengepul', () => {
     await signInAs(app, screen, browser, 'pengepul'); // lands on /handover
 
     await expect(screen.getByText(/No\. nota/).first()).toBeVisible();
-    await screen.getByRole('button', /No\. nota/).first().tap();
+    const note = screen.getByRole('button', /No\. nota/).first();
+    // the row has to announce itself as the control: chevron, hint label, expanded state
+    await expect(note).toHaveAttribute('aria-expanded', 'false');
+    await expect(screen.getByText('Lihat rincian').first()).toBeVisible();
+    await note.tap();
+    await expect(note).toHaveAttribute('aria-expanded', 'true');
     await expect(screen.getByText('Rincian muatan')).toBeVisible();
+    await expect(screen.getByText('Tutup rincian').first()).toBeVisible();
+  });
+
+  test('searches the note list', async ({ app, screen, browser }) => {
+    await signInAs(app, screen, browser, 'pengepul');
+
+    // the seeded notes are what they are: read the numbers off the page.
+    // the number span sits before the date span with no text separator, so take the number alone.
+    const numbers = `[...document.querySelectorAll('[data-slot="body"] button[aria-expanded]')]
+      .map(b => b.querySelector('span > span').textContent.replace('No. nota', '').trim())`;
+    const cards = `document.querySelectorAll('[data-slot="body"] button[aria-expanded]').length`;
+    const before = await browser.evaluate(numbers) as string[];
+    await expect(before.length).toBeGreaterThanOrEqual(1);
+    await expect(screen.getByPlaceholder('Cari…')).toBeVisible();
+
+    const target = before[0]!;
+    await searchFor(screen, target, async () => {
+      await expect(screen.getByText(new RegExp(`No\\. nota ${target}`))).toBeVisible();
+      await expect(await browser.evaluate(cards) as number).toBe(1);
+    });
+
+    await searchFor(screen, 'SJ-999999', async () => {
+      await expect(screen.getByText('Belum ada data.')).toBeVisible();
+      await expect(await browser.evaluate(numbers) as string[]).toEqual([]);
+    });
   });
 });
 
