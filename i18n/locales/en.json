@@ -34,6 +34,8 @@
     "emailInvalid": "Enter a valid email address",
     "password": "Password",
     "passwordRequired": "Password is required",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "submit": "Go to Dashboard",
     "failed": "Wrong email or password. Check and try again.",
     "noAccount": "No account yet? Contact the community admin.",
@@ -92,12 +94,14 @@
     "category": "Category",
     "pickCategory": "Pick a category…",
     "weightKg": "Weight (kg)",
+    "weightPlaceholder": "0.0…",
     "addItem": "Add to list",
     "total": "Total",
     "submit": "Save Weighing",
     "saved": "Weighing saved, resident balance credited.",
     "needResident": "Pick a resident first.",
-    "needItem": "Add at least one item."
+    "needItem": "Add at least one item.",
+    "needWeight": "Weight is required and must be a number."
   },
   "prices": {
     "title": "Waste Price Master",
@@ -163,7 +167,9 @@
     "date": "Shipped at",
     "weight": "Weight",
     "value": "Value",
-    "items": "Load details"
+    "items": "Load details",
+    "showDetail": "View details",
+    "hideDetail": "Hide details"
   },
   "report": {
     "title": "Community Report",

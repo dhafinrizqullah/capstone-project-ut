@@ -34,6 +34,8 @@
     "emailInvalid": "Masukkan alamat email yang valid",
     "password": "Kata sandi",
     "passwordRequired": "Kata sandi wajib diisi",
+    "showPassword": "Tampilkan kata sandi",
+    "hidePassword": "Sembunyikan kata sandi",
     "submit": "Masuk ke Dasbor",
     "failed": "Email atau kata sandi salah. Periksa kembali lalu coba lagi.",
     "noAccount": "Belum punya akun? Hubungi pengurus RW.",
@@ -92,12 +94,14 @@
     "category": "Kategori",
     "pickCategory": "Pilih kategori…",
     "weightKg": "Berat (kg)",
+    "weightPlaceholder": "0,0…",
     "addItem": "Tambah ke daftar",
     "total": "Total",
     "submit": "Simpan Penimbangan",
     "saved": "Penimbangan tersimpan, saldo warga bertambah.",
     "needResident": "Pilih warga dulu.",
-    "needItem": "Tambahkan minimal satu item."
+    "needItem": "Tambahkan minimal satu item.",
+    "needWeight": "Berat wajib diisi dan harus berupa angka."
   },
   "prices": {
     "title": "Master Harga Sampah",
@@ -162,7 +166,9 @@
     "date": "Tanggal kirim",
     "weight": "Berat",
     "value": "Nilai",
-    "items": "Rincian muatan"
+    "items": "Rincian muatan",
+    "showDetail": "Lihat rincian",
+    "hideDetail": "Tutup rincian"
   },
   "report": {
     "title": "Laporan RW",
