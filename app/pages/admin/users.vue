@@ -37,23 +37,11 @@ const columns: TableColumn<Row>[] = [
   { accessorKey: 'rt', header: () => t('users.colRt') },
 ]
 
-const search = ref('')
-const page = ref(1)
-const pageSize = 10
-
-const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  const list = rows.value ?? []
-  if (!q) return list
-  return list.filter(r =>
-    r.full_name.toLowerCase().includes(q)
-    || r.email.toLowerCase().includes(q)
-    || roleLabel(r.role).toLowerCase().includes(q),
-  )
-})
-const total = computed(() => filtered.value.length)
-const paged = computed(() => filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize))
-watch(search, () => { page.value = 1 })
+const { search, page, pageSize, paged, total } = useTablePage(rows, (r, q) =>
+  r.full_name.toLowerCase().includes(q)
+  || r.email.toLowerCase().includes(q)
+  || roleLabel(r.role).toLowerCase().includes(q),
+)
 
 const roleLabel = (r: string) => ({
   warga: t('users.roleWarga'),
@@ -174,7 +162,7 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
               <p class="text-sm text-muted py-6 text-center">{{ $t('common.empty') }}</p>
             </template>
           </UTable>
-          <div class="flex justify-end pt-4">
+          <div v-if="total > pageSize" class="flex justify-end pt-4">
             <UPagination v-model:page="page" :items-per-page="pageSize" :total="total" />
           </div>
         </UCard>

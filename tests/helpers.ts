@@ -106,3 +106,23 @@ export async function signInWith(app: App, screen: Screen, browser: Browser, ema
 
 /** True while the document needs no horizontal scroll. */
 export const NO_OVERFLOW = 'document.documentElement.scrollWidth <= window.innerWidth + 1';
+
+/**
+ * Types into a list page's search box and waits for the view to react.
+ * Dev SSR hydration attaches the input's listener late: a lone `fill` can land on
+ * an input nobody is listening to yet and look like "search does nothing".
+ */
+export async function searchFor(screen: Screen, term: string, reacted: () => Promise<unknown>) {
+  const deadline = Date.now() + 20000;
+  for (;;) {
+    await screen.getByPlaceholder('Cari…').fill(term);
+    try {
+      await reacted();
+      return;
+    }
+    catch (e) {
+      if (Date.now() > deadline) throw e;
+    }
+    await settle(250);
+  }
+}

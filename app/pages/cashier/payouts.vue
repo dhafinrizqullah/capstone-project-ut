@@ -31,6 +31,12 @@ const visible = computed(() => (rows.value ?? []).filter(r =>
   && (!scopeRw.value || residentRw(r.resident) === scopeRw.value)))
 
 type Row = NonNullable<typeof rows.value>[number]
+
+const { search, page, pageSize, paged, total } = useTablePage(
+  visible,
+  (r, q) => residentLabel(r.resident).toLowerCase().includes(q),
+)
+
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'resident', header: () => t('payouts.colResident') },
   { accessorKey: 'amount', header: () => t('payouts.colAmount') },
@@ -95,18 +101,21 @@ const residentRw = (resident: unknown) => (resident as { area: { rw: string } | 
     <template #body>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <p class="text-sm text-muted">{{ $t('payouts.subtitle') }}</p>
-        <USelect
-          v-model="filter"
-          :items="[
-            { label: $t('resident.pending'), value: 'menunggu' },
-            { label: $t('resident.approved'), value: 'disetujui' },
-            { label: $t('resident.rejected'), value: 'ditolak' },
-            { label: $t('common.all'), value: 'all' },
-          ]"
-          class="w-40"
-        />
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+          <USelect
+            v-model="filter"
+            :items="[
+              { label: $t('resident.pending'), value: 'menunggu' },
+              { label: $t('resident.approved'), value: 'disetujui' },
+              { label: $t('resident.rejected'), value: 'ditolak' },
+              { label: $t('common.all'), value: 'all' },
+            ]"
+            class="w-full sm:w-40"
+          />
+        </div>
       </div>
-      <UTable :data="visible" :columns="columns" :loading="status === 'pending'">
+      <UTable :data="paged" :columns="columns" :loading="status === 'pending'">
         <template #resident-cell="{ row }">
           {{ residentLabel(row.original.resident) }}
         </template>
@@ -141,6 +150,9 @@ const residentRw = (resident: unknown) => (resident as { area: { rw: string } | 
           <p class="text-sm text-muted py-6 text-center">{{ $t('common.empty') }}</p>
         </template>
       </UTable>
+      <div v-if="total > pageSize" class="flex justify-end pt-4">
+        <UPagination v-model:page="page" :items-per-page="pageSize" :total="total" />
+      </div>
     </template>
   </UDashboardPanel>
 </template>

@@ -14,6 +14,8 @@ const { data: areaRows, refresh } = await useAsyncData('admin-areas', async () =
   return data ?? []
 })
 
+const { search, page, pageSize, paged, total } = useTablePage(areaRows, (a, q) => `${a.rw} ${a.rt}`.toLowerCase().includes(q))
+
 const open = ref(false)
 const schema = z.object({
   rw: z.string().trim().min(1),
@@ -62,11 +64,14 @@ async function deleteArea(id: number) {
     <template #body>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
         <p class="text-sm text-muted">{{ $t('areas.subtitle') }}</p>
-        <UButton class="self-start sm:self-auto" icon="i-lucide-plus" :label="$t('areas.add')" @click="openNew" />
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+          <UButton class="self-start sm:self-auto" icon="i-lucide-plus" :label="$t('areas.add')" @click="openNew" />
+        </div>
       </div>
       <UCard>
         <ul class="grid gap-1">
-          <li v-for="a in areaRows ?? []" :key="a.id" class="flex items-center justify-between gap-2 text-sm py-1.5 border-t border-muted first:border-t-0">
+          <li v-for="a in paged" :key="a.id" class="flex items-center justify-between gap-2 text-sm py-1.5 border-t border-muted first:border-t-0">
             <span class="font-semibold">{{ a.rw }} · {{ a.rt }}</span>
             <UButton
               icon="i-lucide-trash"
@@ -78,7 +83,10 @@ async function deleteArea(id: number) {
             />
           </li>
         </ul>
-        <p v-if="!areaRows?.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
+        <p v-if="!paged.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
+        <div v-if="total > pageSize" class="flex justify-end pt-4">
+          <UPagination v-model:page="page" :items-per-page="pageSize" :total="total" />
+        </div>
       </UCard>
 
       <UModal v-model:open="open" :title="$t('areas.add')" :ui="{ footer: 'justify-end' }">
