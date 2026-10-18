@@ -17,6 +17,7 @@ const fmtStamp = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: '
 const { scopeRw } = await useMyScope()
 
 const exporting = ref(false)
+const exportingPdf = ref(false)
 
 async function buildReport() {
   const [depRes, itemsRes, profRes, ledgerRes] = await Promise.all([
@@ -109,8 +110,30 @@ async function exportExcel() {
   exporting.value = false
 }
 
-function printPdf() {
-  window.print()
+async function downloadPdf() {
+  exportingPdf.value = true
+  try {
+    // ponytail: jsPDF draws text, never screenshots — no canvas, no oklch parsing, works on any phone
+    const { jsPDF } = await import('jspdf')
+    const { drawReportPdf } = await import('~/utils/report-pdf')
+    const r = report.value ?? await buildReport()
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    drawReportPdf(doc, {
+      title: t('report.title'),
+      meta: `${t('report.generated')}: ${r.generated} · ${t('report.ward')}: ${r.units}`,
+      masthead: [t('brand').toUpperCase(), `${t('report.ward')}: ${r.units}`],
+      kpi: r.kpi.map(([label, value]) => `${label}: ${value}`),
+      sections: [
+        { heading: t('report.byCategory'), head: [t('prices.colName'), t('resident.colWeight')], rows: r.cats },
+        { heading: t('report.byRt'), head: [`${t('users.colRw')} · ${t('users.colRt')}`, t('resident.colWeight')], rows: r.rt },
+      ],
+    })
+    doc.save(`laporan-rw-${new Date().toISOString().slice(0, 10)}.pdf`)
+  }
+  catch (e) {
+    toast.add({ title: (e as Error).message, color: 'error' })
+  }
+  exportingPdf.value = false
 }
 </script>
 
@@ -125,11 +148,11 @@ function printPdf() {
         <p class="text-sm text-muted">{{ $t('report.subtitle') }}</p>
         <div class="flex flex-wrap gap-3">
           <UButton icon="i-lucide-file-spreadsheet" :label="$t('report.exportExcel')" :loading="exporting" @click="exportExcel" />
-          <UButton icon="i-lucide-printer" color="neutral" variant="outline" :label="$t('report.printPdf')" @click="printPdf" />
+          <UButton icon="i-lucide-printer" color="neutral" variant="outline" :label="$t('report.printPdf')" :loading="exportingPdf" @click="downloadPdf" />
         </div>
       </div>
 
-      <!-- the recap itself: what the browser prints, and what the screen shows -->
+      <!-- the recap itself: what the PDF summarizes, and what the screen shows -->
       <div class="grid gap-4">
         <div>
           <h2 class="text-lg font-extrabold text-highlighted">{{ $t('report.title') }}</h2>

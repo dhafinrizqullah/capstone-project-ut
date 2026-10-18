@@ -175,7 +175,7 @@
     "subtitle": "Unduh rekap resmi periode berjalan.",
     "exportExcel": "Unduh Excel",
     "printPdf": "Cetak / PDF",
-    "hint": "Excel berisi ringkasan KPI, per kategori, per RT, plus satu baris per penimbangan dan per item. PDF via dialog cetak browser.",
+    "hint": "Excel berisi ringkasan KPI, per kategori, per RT, plus satu baris per penimbangan dan per item. PDF diunduh langsung sebagai file.",
     "generated": "Dibuat",
     "ward": "Wilayah",
     "summary": "Ringkasan",

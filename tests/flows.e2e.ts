@@ -237,19 +237,21 @@ describe('pengurus_rw', () => {
     await expect(Object.keys(lines[0]!)).toEqual(['Tanggal', 'Warga', 'RW', 'RT', 'Kategori', 'Berat', 'Harga/kg', 'Nilai']);
   });
 
-  test('the report prints the recap and calls window.print', async ({ app, screen, browser }) => {
+  test('the report downloads the recap as a pdf file', async ({ app, screen, browser }) => {
     await signInAs(app, screen, browser, 'pengurus_rw');
     await openPage(app, browser, '/report');
 
-    // the recap is on the page, so the printed sheet is not an empty page
+    // the recap is on the page, so the pdf is not an empty page
     await expect(screen.getByText('Total Sampah Terkumpul')).toBeVisible();
     await expect(screen.getByText('Per kategori')).toBeVisible();
     await expect(screen.getByText('Per RT')).toBeVisible();
     await expect(screen.getByText(/Dibuat:/)).toBeVisible();
 
-    await browser.evaluate(`window.print = () => { window.__printed = true }`);
-    await screen.getByRole('button', 'Cetak / PDF').tap();
-    await expect(await browser.evaluate(`window.__printed === true`)).toBe(true);
+    const download = await browser.waitForDownload(
+      () => screen.getByRole('button', 'Cetak / PDF').tap(),
+      { timeout: 30000 },
+    );
+    await expect(download.suggestedFilename).toMatch(/^laporan-rw-\d{4}-\d{2}-\d{2}\.pdf$/);
 
     // the print stylesheet drops the app chrome and prints on light surfaces
     const printCss = await browser.evaluate(`

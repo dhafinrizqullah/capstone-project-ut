@@ -2,6 +2,7 @@ allowBuilds:
   esbuild: true
   vue-demi: true
   unrs-resolver: true
+  core-js: true
 minimumReleaseAgeExclude:
   - '@nuxt/kit@4.6.2'
   - '@nuxt/nitro-server@4.6.2'
