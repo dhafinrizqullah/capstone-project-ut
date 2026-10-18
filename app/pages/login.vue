@@ -13,6 +13,7 @@ const state = reactive<Partial<LoginSchema>>({ email: '', password: '' })
 const client = useSupabaseClient<Database>()
 const loading = ref(false)
 const serverError = ref('')
+const showPassword = ref(false)
 
 async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
   loading.value = true
@@ -119,14 +120,26 @@ async function onSubmit(event: FormSubmitEvent<LoginSchema>) {
           <UFormField name="password" :label="$t('auth.password')" required>
             <UInput
               v-model="state.password"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               name="password"
               autocomplete="current-password"
               placeholder="••••••••…"
               size="lg"
-              :ui="{ base: 'rounded-xl' }"
+              :ui="{ base: 'rounded-xl', trailing: 'pe-1' }"
               class="w-full"
-            />
+            >
+              <template #trailing>
+                <UButton
+                  type="button"
+                  :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                  color="neutral"
+                  variant="ghost"
+                  :aria-label="$t(showPassword ? 'auth.hidePassword' : 'auth.showPassword')"
+                  :aria-pressed="showPassword"
+                  @click="showPassword = !showPassword"
+                />
+              </template>
+            </UInput>
           </UFormField>
 
           <UAlert
