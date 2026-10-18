@@ -17,6 +17,13 @@ export default defineNuxtConfig({
     detectBrowserLanguage: false,
   },
   css: ['~/assets/css/main.css'],
+  // NUXT_PUBLIC_SITE_URL pins the public origin for link previews (only needed behind
+  // a proxy that rewrites the host header); otherwise the request's own origin is used.
+  runtimeConfig: {
+    public: {
+      siteUrl: '',
+    },
+  },
   // follows the OS by default; users can override with the sidebar toggle
   colorMode: {
     preference: 'system',
@@ -27,7 +34,13 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   app: {
     head: {
-      htmlAttrs: { lang: 'id' }
+      htmlAttrs: { lang: 'id' },
+      // the brand mark: emerald tile + recycle glyph (same mark as the login page and sidebar)
+      link: [
+        { rel: 'icon', href: '/icon.svg', type: 'image/svg+xml' },
+        { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      ],
     }
   }
 })
