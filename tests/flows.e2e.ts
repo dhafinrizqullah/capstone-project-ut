@@ -103,7 +103,7 @@ describe('petugas', () => {
     await signInAs(app, screen, browser, 'petugas');
     await openPage(app, browser, '/cashier/shipments');
 
-    await expect(screen.getByText('Pengiriman Terakhir')).toBeVisible();
+    await expect(screen.getByText('Riwayat Pengiriman')).toBeVisible();
     await expect(screen.getByText(/SJ-/).first()).toBeVisible();
   });
 
@@ -134,8 +134,9 @@ describe('warga', () => {
     await expect(screen.getByText('Saldo Tabungan')).toBeVisible();
     await expect(screen.getByText(/Plastik PET/)).toBeVisible();
     await expect(screen.getByRole('button', 'Kirim Pengajuan')).toBeVisible();
-    await expect(screen.getByText('Riwayat Timbangan')).toBeVisible();
 
+    // the histories are their own pages now
+    await openPage(app, browser, '/resident/weighings');
     // demo seed gives the resident months of weighings
     const rows = await browser.evaluate(`document.querySelectorAll('tbody tr').length`);
     await expect(rows).toBeGreaterThanOrEqual(1);
@@ -155,7 +156,8 @@ describe('self-service drop-off', () => {
     await expect(screen.getByText('Setoran terkirim, menunggu verifikasi petugas RW.')).toBeVisible();
 
     // pending, still at the declared weight, nothing credited yet
-    await expect(screen.getByRole('row', /7,7 kg[\s\S]*Menunggu/)).toBeVisible();
+    await openPage(app, browser, '/resident/weighings');
+    await expect(screen.getByRole('row', /7,7 kg[\s\S]*Menunggu/).first()).toBeVisible();
 
     // B. the operator re-weighs it before it counts
     await screen.getByRole('button', 'Keluar').tap();
@@ -178,6 +180,7 @@ describe('self-service drop-off', () => {
     await screen.getByRole('button', 'Keluar').tap();
     await expect(browser).toHaveURL('/login', { timeout: 60000 });
     await signInAs(app, screen, browser, 'warga');
+    await openPage(app, browser, '/resident/weighings');
     await expect(screen.getByRole('row', /8,8 kg[\s\S]*Tercatat/).first()).toBeVisible();
   });
 });
@@ -202,9 +205,11 @@ describe('pengepul', () => {
 
     // the seeded notes are what they are: read the numbers off the page.
     // the number span sits before the date span with no text separator, so take the number alone.
-    const numbers = `[...document.querySelectorAll('[data-slot="body"] button[aria-expanded]')]
-      .map(b => b.querySelector('span > span').textContent.replace('No. nota', '').trim())`;
-    const cards = `document.querySelectorAll('[data-slot="body"] button[aria-expanded]').length`;
+    // other `aria-expanded` buttons live in the body too (the date-range filter), so keep the note rows.
+    const noteRows = `[...document.querySelectorAll('[data-slot="body"] button[aria-expanded]')]
+      .filter(b => b.textContent.includes('No. nota'))`;
+    const numbers = `${noteRows}.map(b => b.querySelector('span > span').textContent.replace('No. nota', '').trim())`;
+    const cards = `${noteRows}.length`;
     const before = await browser.evaluate(numbers) as string[];
     await expect(before.length).toBeGreaterThanOrEqual(1);
     await expect(screen.getByPlaceholder('Cari…')).toBeVisible();

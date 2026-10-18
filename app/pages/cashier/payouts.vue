@@ -15,27 +15,27 @@ const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency
 const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
 const filter = ref('menunggu')
 
-const { data: rows, status, refresh } = await useAsyncData('payouts', async () => {
-  const { data } = await client
-    .from('withdrawals')
-    .select('id,resident_id,amount,status,created_at,resident:profiles!withdrawals_resident_id_fkey(full_name,area:areas!profiles_area_id_fkey(rw,rt))')
-    .order('created_at', { ascending: false })
-    .limit(50)
-  return data ?? []
-}, { watch: [filter] })
+const { search, rows, page, pageSize, total, loading, refresh, preset, fromDate, toDate } = useListPage({
+  key: 'payouts',
+  // a status pick is a new result set, so it drives the refetch + page reset
+  extra: [filter],
+  fetch: async ({ page, pageSize, term, from, to }) => {
+    let q = client
+      .from('withdrawals')
+      .select('id,resident_id,amount,status,created_at,resident:profiles!withdrawals_resident_id_fkey!inner(full_name,area:areas!profiles_area_id_fkey!inner(rw,rt))', { count: 'exact' })
+    if (filter.value !== 'all') q = q.eq('status', filter.value)
+    // search the resident name; `!inner` makes the filter drop non-matching requests
+    if (term) q = q.ilike('resident.full_name', `%${term}%`)
+    // a RW-bound operator only validates their own RW's requests
+    if (scopeRw.value) q = q.eq('resident.area.rw', scopeRw.value)
+    if (from) q = q.gte('created_at', from)
+    if (to) q = q.lte('created_at', to)
+    const { data, count } = await q.order('created_at', { ascending: false }).range((page - 1) * pageSize, page * pageSize - 1)
+    return { rows: data ?? [], total: count ?? 0 }
+  },
+})
 
-// ponytail: push filtering into the query once data grows; small dataset so filter locally
-const visible = computed(() => (rows.value ?? []).filter(r =>
-  (filter.value === 'all' || r.status === filter.value)
-  // a RW-bound operator only validates their own RW's requests
-  && (!scopeRw.value || residentRw(r.resident) === scopeRw.value)))
-
-type Row = NonNullable<typeof rows.value>[number]
-
-const { search, page, pageSize, paged, total } = useTablePage(
-  visible,
-  (r, q) => residentLabel(r.resident).toLowerCase().includes(q),
-)
+type Row = (typeof rows.value)[number]
 
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'resident', header: () => t('payouts.colResident') },
@@ -88,8 +88,6 @@ function residentLabel(resident: unknown) {
   const area = r.area ? ` · ${r.area.rw} · ${r.area.rt}` : ''
   return `${r.full_name}${area}`
 }
-
-const residentRw = (resident: unknown) => (resident as { area: { rw: string } | null } | null)?.area?.rw ?? null
 </script>
 
 <template>
@@ -113,9 +111,10 @@ const residentRw = (resident: unknown) => (resident as { area: { rw: string } | 
             ]"
             class="w-full sm:w-40"
           />
+          <DateRangeFilter v-model:preset="preset" v-model:from="fromDate" v-model:to="toDate" />
         </div>
       </div>
-      <UTable :data="paged" :columns="columns" :loading="status === 'pending'">
+      <UTable :data="rows" :columns="columns" :loading="loading">
         <template #resident-cell="{ row }">
           {{ residentLabel(row.original.resident) }}
         </template>

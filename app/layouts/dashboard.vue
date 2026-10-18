@@ -28,7 +28,13 @@ const items = computed<NavItem[]>(() => {
   const all = role.value === 'superadmin'
   const main: NavItem[] = []
   if (role.value === 'pengurus_rw' || all) main.push({ label: t('nav.dashboard'), icon: 'i-lucide-chart-column', to: '/' })
-  if (role.value === 'warga' || all) main.push({ label: t('nav.resident'), icon: 'i-lucide-house', to: '/resident' })
+  if (role.value === 'warga' || all) {
+    main.push(
+      { label: t('nav.resident'), icon: 'i-lucide-house', to: '/resident' },
+      { label: t('nav.residentWeighings'), icon: 'i-lucide-scale', to: '/resident/weighings' },
+      { label: t('nav.residentWithdrawals'), icon: 'i-lucide-banknote', to: '/resident/withdrawals' },
+    )
+  }
   if (role.value === 'petugas' || all) {
     main.push(
       { label: t('nav.cashier'), icon: 'i-lucide-scale', to: '/cashier' },

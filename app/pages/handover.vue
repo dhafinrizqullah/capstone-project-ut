@@ -13,23 +13,25 @@ const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency
 const fmtKg = (v: number) => `${new Intl.NumberFormat(tag.value, { maximumFractionDigits: 1 }).format(v)} kg`
 const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
 
-const { data: ships, status, refresh } = await useAsyncData('handover', async () => {  // ponytail: superadmin sees every shipment (global scope); collectors see only their own
-  const { data: me } = await client.from('profiles').select('role').eq('id', myId).maybeSingle()
-  let q = client
-    .from('shipments')
-    .select('id,note_number,total_weight,total_value,status,shipped_at')
-    .order('shipped_at', { ascending: false })
-    .limit(20)
-  if (me?.role !== 'superadmin') q = q.eq('collector_id', myId)
-  const { data } = await q
-  return data ?? []
+const { role } = await useMyScope()
+
+const { search, rows: ships, page, pageSize, total, loading, refresh, preset, fromDate, toDate } = useListPage({
+  key: 'handover',
+  fetch: async ({ page, pageSize, term, from, to }) => {
+    let q = client.from('shipments').select('id,note_number,total_weight,total_value,status,shipped_at', { count: 'exact' })
+    // ponytail: superadmin sees every shipment (global scope); collectors see only their own
+    if (role.value !== 'superadmin') q = q.eq('collector_id', myId)
+    if (term) q = q.ilike('note_number', `%${term}%`)
+    if (from) q = q.gte('shipped_at', from)
+    if (to) q = q.lte('shipped_at', to)
+    const { data, count } = await q.order('shipped_at', { ascending: false }).range((page - 1) * pageSize, page * pageSize - 1)
+    return { rows: data ?? [], total: count ?? 0 }
+  },
 })
 
 const expanded = ref<number | null>(null)
 const itemsCache = ref<Record<number, { name: string, weightKg: number, value: number }[]>>({})
 const confirming = ref<number | null>(null)
-
-const { search, page, pageSize, paged, total } = useTablePage(ships, (s, q) => s.note_number.toLowerCase().includes(q))
 
 async function toggle(id: number) {
   expanded.value = expanded.value === id ? null : id
@@ -69,12 +71,15 @@ async function confirm(id: number) {
     <template #body>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
         <p class="text-sm text-muted">{{ $t('handover.subtitle') }}</p>
-        <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+          <DateRangeFilter v-model:preset="preset" v-model:from="fromDate" v-model:to="toDate" />
+        </div>
       </div>
-      <p v-if="status === 'pending'" class="text-sm text-muted">{{ $t('common.loading') }}</p>
-      <p v-else-if="!paged.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
+      <p v-if="loading" class="text-sm text-muted">{{ $t('common.loading') }}</p>
+      <p v-else-if="!ships.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
       <div v-else class="grid gap-3">
-        <UCard v-for="s in paged" :key="s.id">
+        <UCard v-for="s in ships" :key="s.id">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <!-- the note number is the control: chevron + link colour + a label, so the
                  row reads as clickable instead of looking like plain heading text -->

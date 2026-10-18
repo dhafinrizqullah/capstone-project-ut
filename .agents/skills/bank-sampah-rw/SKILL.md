@@ -26,13 +26,15 @@ Gates before finishing: `pnpm lint`, `pnpm test`, `pnpm build` all green. E2E (`
 - Indonesian exists ONLY as UI display strings in `i18n/locales/id.json` (form validation messages included — inject via `t()`, never hardcode).
 - Routes are English; UI defaults to Indonesian (`defaultLocale: 'id'`, `strategy: 'no_prefix'`), switchable to English via the sidebar selector.
 
-## Routes & roles (10 pages)
+## Routes & roles
 
 | Route | Role | Content |
 |---|---|---|
 | `/login` | public | email+password only, redirects by role after sign-in |
 | `/` | `pengurus_rw` | analytics dashboard (Chart.js, `UTable` recent) |
-| `/resident` | `warga` | prices, weighing history, balance, withdrawal request |
+| `/resident` | `warga` | prices, balance, withdrawal request, links to the two histories |
+| `/resident/weighings` | `warga` | own weighing history (paginated) |
+| `/resident/withdrawals` | `warga` | own withdrawal history (paginated) |
 | `/cashier` | `petugas` | weighing cashier, auto-IDR, credits savings |
 | `/cashier/prices` | `petugas`, `pengurus_rw` | price master CRUD (`UTable` + `UModal`) |
 | `/cashier/payouts` | `petugas` | approve/reject withdrawals (debits on approve) |
@@ -44,6 +46,12 @@ Gates before finishing: `pnpm lint`, `pnpm test`, `pnpm build` all green. E2E (`
 | `/denied` | any authed | access-denied fallback |
 
 New page checklist: `definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: [...] })`, `<script>` first in SFC, `UDashboardPanel` + `#header` (`UDashboardNavbar` + `UDashboardSidebarCollapse`) + `#body`, all numbers/dates via `Intl.*` with `Asia/Jakarta`, empty states via `#empty` or `common.empty`.
+
+## Lists & time (strict)
+
+- Every dated list has a date-range filter, defaults to "this year", and pages **server-side** through `useListPage` (`.range()` + `{ count: 'exact' }`) — never slice an array client-side.
+- Timezone is always **Asia/Jakarta (GMT+7)**: build civil-day windows with `useDateRange` (fixed `+07:00`, no DST) and format with `Intl.*`; never send a bare local/UTC date to Supabase.
+- Search means "all data": `useListPage` drops the date window while a search term is active, other filters still apply.
 
 ## Auth & roles
 

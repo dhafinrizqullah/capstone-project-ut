@@ -16,11 +16,28 @@ const fmtKg = (v: number) => `${fmtInt.value.format(v)} kg`
 const fmtMonth = computed(() => new Intl.DateTimeFormat(tag.value, { month: 'short' }))
 const fmtTime = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
 
-const { data: dash, status } = await useAsyncData('dash', async () => {  const [depRes, profRes, ledgerRes, itemsRes] = await Promise.all([
-    client.from('deposits').select('id,resident_id,total_weight,total_value,deposited_at').eq('status', 'tercatat'),
+const { preset, fromDate, toDate, from, to } = useDateRange()
+
+const { data: dash, status } = await useAsyncData('dash', async () => {
+  // the date window narrows the activity aggregates; the balance is a snapshot, not a period
+  let depQ = client.from('deposits').select('id,resident_id,total_weight,total_value,deposited_at').eq('status', 'tercatat')
+  let itemsQ = client
+    .from('deposit_items')
+    .select('deposit_id,category_name,weight_kg,deposits!inner(status,deposited_at)')
+    .eq('deposits.status', 'tercatat')
+  if (from.value) {
+    depQ = depQ.gte('deposited_at', from.value)
+    itemsQ = itemsQ.gte('deposits.deposited_at', from.value)
+  }
+  if (to.value) {
+    depQ = depQ.lte('deposited_at', to.value)
+    itemsQ = itemsQ.lte('deposits.deposited_at', to.value)
+  }
+  const [depRes, profRes, ledgerRes, itemsRes] = await Promise.all([
+    depQ,
     client.from('profiles').select('id,full_name,area:areas!profiles_area_id_fkey(rw,rt)').eq('role', 'warga'),
     client.from('savings_ledger').select('resident_id,type,amount'),
-    client.from('deposit_items').select('deposit_id,category_name,weight_kg'),
+    itemsQ,
   ])
   return {
     deposits: depRes.data ?? [],
@@ -32,7 +49,7 @@ const { data: dash, status } = await useAsyncData('dash', async () => {  const [
     ledger: ledgerRes.data ?? [],
     items: itemsRes.data ?? [],
   }
-})
+}, { watch: [from, to] })
 
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
 
@@ -280,22 +297,25 @@ onUnmounted(() => {
     <template #body>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <p class="text-sm text-muted">{{ $t('dash.subtitle') }}</p>
-        <div v-if="myRole === 'superadmin' || scopeRw" class="flex gap-2">
-          <USelect
-            v-if="myRole === 'superadmin'"
-            v-model="rwFilter"
-            :items="rwOptions"
-            value-key="value"
-            :aria-label="$t('users.colRw')"
-            class="w-36"
-          />
-          <USelect
-            v-model="rtFilter"
-            :items="rtOptions"
-            value-key="value"
-            :aria-label="$t('users.colRt')"
-            class="w-36"
-          />
+        <div class="flex flex-wrap items-center gap-2">
+          <DateRangeFilter v-model:preset="preset" v-model:from="fromDate" v-model:to="toDate" />
+          <template v-if="myRole === 'superadmin' || scopeRw">
+            <USelect
+              v-if="myRole === 'superadmin'"
+              v-model="rwFilter"
+              :items="rwOptions"
+              value-key="value"
+              :aria-label="$t('users.colRw')"
+              class="w-36"
+            />
+            <USelect
+              v-model="rtFilter"
+              :items="rtOptions"
+              value-key="value"
+              :aria-label="$t('users.colRt')"
+              class="w-36"
+            />
+          </template>
         </div>
       </div>
 

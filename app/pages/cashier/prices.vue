@@ -12,14 +12,17 @@ const toast = useToast()
 const tag = computed(() => (locale.value === 'id' ? 'id-ID' : 'en-US'))
 const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }))
 
-const { data: rows, refresh } = await useAsyncData('prices', async () => {
-  const { data } = await client.from('waste_categories').select('id,name,price_per_kg,active').order('name')
-  return data ?? []
+type Row = Pick<Database['public']['Tables']['waste_categories']['Row'], 'id' | 'name' | 'price_per_kg' | 'active'>
+
+const { search, rows, page, pageSize, total, loading, refresh } = useListPage<Row>({
+  key: 'prices',
+  fetch: async ({ page, pageSize, term }) => {
+    let q = client.from('waste_categories').select('id,name,price_per_kg,active', { count: 'exact' })
+    if (term) q = q.ilike('name', `%${term}%`)
+    const { data, count } = await q.order('name').range((page - 1) * pageSize, page * pageSize - 1)
+    return { rows: data ?? [], total: count ?? 0 }
+  },
 })
-
-const { search, page, pageSize, paged, total } = useTablePage(rows, (r, q) => r.name.toLowerCase().includes(q))
-
-type Row = NonNullable<typeof rows.value>[number]
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'name', header: () => t('prices.colName') },
   { accessorKey: 'price_per_kg', header: () => t('prices.colPrice') },
@@ -84,7 +87,7 @@ async function onSave(event: FormSubmitEvent<Schema>) {
           <UButton class="self-start sm:self-auto" icon="i-lucide-plus" :label="$t('prices.new')" @click="openNew" />
         </div>
       </div>
-      <UTable :data="paged" :columns="columns">
+      <UTable :data="rows" :columns="columns" :loading="loading">
         <template #price_per_kg-cell="{ row }">
           <span class="tabular-nums">{{ fmtRp.format(Number(row.original.price_per_kg)) }}</span>
         </template>

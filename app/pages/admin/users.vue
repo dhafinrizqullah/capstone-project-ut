@@ -9,26 +9,41 @@ const { t } = useI18n()
 const client = useSupabaseClient<Database>()
 const toast = useToast()
 
-const { data: rows, refresh } = await useAsyncData('admin-users', async () => {
-  const { data } = await client
-    .from('profiles')
-    .select('id,full_name,email,role,rw,area:areas!profiles_area_id_fkey(rw,rt)')
-    .order('created_at', { ascending: false })
-    .limit(100)
-  return (data ?? []).map(r => ({
-    id: r.id,
-    full_name: r.full_name,
-    email: r.email,
-    role: r.role,
-    // residents carry their RW on the area; RW-bound staff carry it on the profile
-    rw: (r.area as unknown as { rw: string, rt: string } | null)?.rw ?? r.rw ?? null,
-    rt: (r.area as unknown as { rw: string, rt: string } | null)?.rt ?? null,
-  }))
+type Row = {
+  id: string
+  full_name: string
+  email: string
+  role: string
+  rw: string | null
+  rt: string | null
+}
+
+const { search, rows, page, pageSize, total, refresh } = useListPage<Row>({
+  key: 'admin-users',
+  fetch: async ({ page, pageSize, term }) => {
+    let q = client
+      .from('profiles')
+      .select('id,full_name,email,role,rw,area:areas!profiles_area_id_fkey(rw,rt)', { count: 'exact' })
+    if (term) {
+      // search the stored values, not the localised role labels
+      const pattern = likePattern(term)
+      q = q.or(`full_name.ilike.${pattern},email.ilike.${pattern},role.ilike.${pattern}`)
+    }
+    const { data, count } = await q.order('created_at', { ascending: false }).range((page - 1) * pageSize, page * pageSize - 1)
+    return {
+      rows: (data ?? []).map(r => ({
+        id: r.id,
+        full_name: r.full_name,
+        email: r.email,
+        role: r.role,
+        // residents carry their RW on the area; RW-bound staff carry it on the profile
+        rw: (r.area as unknown as { rw: string, rt: string } | null)?.rw ?? r.rw ?? null,
+        rt: (r.area as unknown as { rw: string, rt: string } | null)?.rt ?? null,
+      })),
+      total: count ?? 0,
+    }
+  },
 })
-
-// ponytail: area master from the areas table; RT options scoped to chosen RW
-
-type Row = NonNullable<typeof rows.value>[number]
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'full_name', header: () => t('users.colName') },
   { accessorKey: 'email', header: () => t('users.colEmail') },
@@ -36,12 +51,6 @@ const columns: TableColumn<Row>[] = [
   { accessorKey: 'rw', header: () => t('users.colRw') },
   { accessorKey: 'rt', header: () => t('users.colRt') },
 ]
-
-const { search, page, pageSize, paged, total } = useTablePage(rows, (r, q) =>
-  r.full_name.toLowerCase().includes(q)
-  || r.email.toLowerCase().includes(q)
-  || roleLabel(r.role).toLowerCase().includes(q),
-)
 
 const roleLabel = (r: string) => ({
   warga: t('users.roleWarga'),
@@ -73,7 +82,7 @@ const state = reactive<Partial<Schema>>({ full_name: '', email: '', password: ''
 const creating = ref(false)
 
 // ponytail: RW/RT pickers read the areas master; RT scoped to chosen RW, custom values allowed
-const { data: areas } = await useAsyncData('admin-areas', async () => {
+const { data: areas } = await useAsyncData('admin-area-options', async () => {
   const { data } = await client.from('areas').select('rw,rt').order('rw').order('rt')
   return data ?? []
 })
@@ -151,7 +160,7 @@ async function onCreate(event: FormSubmitEvent<Schema>) {
           <div class="flex justify-end mb-3">
             <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-64" />
           </div>
-          <UTable :data="paged" :columns="columns">
+          <UTable :data="rows" :columns="columns">
             <template #role-cell="{ row }">
               <UBadge color="neutral" variant="subtle">{{ roleLabel(row.original.role) }}</UBadge>
             </template>

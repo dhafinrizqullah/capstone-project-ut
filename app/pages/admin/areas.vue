@@ -9,12 +9,20 @@ const { t } = useI18n()
 const client = useSupabaseClient<Database>()
 const toast = useToast()
 
-const { data: areaRows, refresh } = await useAsyncData('admin-areas', async () => {
-  const { data } = await client.from('areas').select('id,rw,rt').order('rw').order('rt')
-  return data ?? []
-})
+type Row = Pick<Database['public']['Tables']['areas']['Row'], 'id' | 'rw' | 'rt'>
 
-const { search, page, pageSize, paged, total } = useTablePage(areaRows, (a, q) => `${a.rw} ${a.rt}`.toLowerCase().includes(q))
+const { search, rows: paged, page, pageSize, total, refresh } = useListPage<Row>({
+  key: 'admin-areas',
+  fetch: async ({ page, pageSize, term }) => {
+    let q = client.from('areas').select('id,rw,rt', { count: 'exact' })
+    if (term) {
+      const pattern = likePattern(term)
+      q = q.or(`rw.ilike.${pattern},rt.ilike.${pattern}`)
+    }
+    const { data, count } = await q.order('rw').order('rt').range((page - 1) * pageSize, page * pageSize - 1)
+    return { rows: data ?? [], total: count ?? 0 }
+  },
+})
 
 const open = ref(false)
 const schema = z.object({

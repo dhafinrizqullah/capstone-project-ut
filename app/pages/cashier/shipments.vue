@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
 import type { Database } from '~/types/database.types'
 
 definePageMeta({ titleKey: 'ship.title', layout: 'dashboard', middleware: ['auth', 'role'], allowedRoles: ['petugas'] })
@@ -10,16 +11,37 @@ const toast = useToast()
 
 const tag = computed(() => (locale.value === 'id' ? 'id-ID' : 'en-US'))
 const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }))
-const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
+const fmtKg = (v: number) => `${new Intl.NumberFormat(tag.value, { maximumFractionDigits: 1 }).format(v)} kg`
+const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
 
-const { data: refs, refresh: refreshRefs } = await useAsyncData('ship-refs', async () => {
-  const [collectors, cats, recent] = await Promise.all([
+const { data: refs } = await useAsyncData('ship-refs', async () => {
+  const [collectors, cats] = await Promise.all([
     client.from('profiles').select('id,full_name').eq('role', 'pengepul').order('full_name'),
     client.from('waste_categories').select('id,name,price_per_kg').eq('active', true).order('name'),
-    client.from('shipments').select('id,note_number,total_weight,total_value,status,shipped_at').order('shipped_at', { ascending: false }).limit(10),
   ])
-  return { collectors: collectors.data ?? [], cats: cats.data ?? [], recent: recent.data ?? [] }
+  return { collectors: collectors.data ?? [], cats: cats.data ?? [] }
 })
+
+const { search, rows, page, pageSize, total, loading, refresh, preset, fromDate, toDate } = useListPage({
+  key: 'shipments',
+  fetch: async ({ page, pageSize, term, from, to }) => {
+    let q = client.from('shipments').select('id,note_number,total_weight,total_value,status,shipped_at', { count: 'exact' })
+    if (term) q = q.ilike('note_number', `%${term}%`)
+    if (from) q = q.gte('shipped_at', from)
+    if (to) q = q.lte('shipped_at', to)
+    const { data, count } = await q.order('shipped_at', { ascending: false }).range((page - 1) * pageSize, page * pageSize - 1)
+    return { rows: data ?? [], total: count ?? 0 }
+  },
+})
+
+type Row = (typeof rows.value)[number]
+const columns: TableColumn<Row>[] = [
+  { accessorKey: 'note_number', header: () => t('handover.note') },
+  { accessorKey: 'shipped_at', header: () => t('handover.date') },
+  { accessorKey: 'total_weight', header: () => t('handover.weight') },
+  { accessorKey: 'total_value', header: () => t('handover.value') },
+  { accessorKey: 'status', header: () => t('common.status') },
+]
 
 const collectorId = ref<string>()
 const categoryId = ref<number>()
@@ -31,7 +53,7 @@ const saving = ref(false)
 
 const collectorItems = computed(() => (refs.value?.collectors ?? []).map(c => ({ label: c.full_name, value: c.id })))
 const categoryItems = computed(() => (refs.value?.cats ?? []).map(c => ({ label: `${c.name} · ${fmtRp.value.format(Number(c.price_per_kg))}/kg`, value: c.id })))
-const total = computed(() => items.value.reduce((s, i) => s + i.value, 0))
+const totalValue = computed(() => items.value.reduce((s, i) => s + i.value, 0))
 const totalKg = computed(() => items.value.reduce((s, i) => s + i.weightKg, 0))
 
 function addItem() {
@@ -61,7 +83,7 @@ async function submit() {
     collector_id: collectorId.value,
     operator_id: myId,
     total_weight: totalKg.value,
-    total_value: total.value,
+    total_value: totalValue.value,
   }).select('id,note_number').single()
   if (shipErr || !ship) {
     saving.value = false
@@ -79,7 +101,7 @@ async function submit() {
   items.value = []
   collectorId.value = undefined
   toast.add({ title: t('ship.issued', { note: ship.note_number }), color: 'success' })
-  await refreshRefs()
+  await refresh()
 }
 </script>
 
@@ -128,13 +150,13 @@ async function submit() {
           <template #header>
             <div class="flex items-center justify-between">
               <h2 class="font-bold">{{ $t('ship.total') }}</h2>
-              <span class="text-xl font-extrabold tabular-nums">{{ fmtRp.format(total) }}</span>
+              <span class="text-xl font-extrabold tabular-nums">{{ fmtRp.format(totalValue) }}</span>
             </div>
           </template>
           <p v-if="!items.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
           <ul v-else class="grid gap-2 mb-4">
             <li v-for="(it, idx) in items" :key="idx" class="flex items-center justify-between gap-2 text-sm">
-              <span>{{ it.name }} · <span class="tabular-nums">{{ it.weightKg }} kg</span></span>
+              <span>{{ it.name }} · <span class="tabular-nums">{{ fmtKg(it.weightKg) }}</span></span>
               <span class="flex items-center gap-2">
                 <span class="font-bold tabular-nums">{{ fmtRp.format(it.value) }}</span>
                 <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="xs" :aria-label="it.name" @click="items.splice(idx, 1)" />
@@ -147,16 +169,36 @@ async function submit() {
 
       <UCard>
         <template #header>
-          <h2 class="font-bold">{{ $t('ship.history') }}</h2>
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="font-bold">{{ $t('ship.history') }}</h2>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+              <DateRangeFilter v-model:preset="preset" v-model:from="fromDate" v-model:to="toDate" />
+            </div>
+          </div>
         </template>
-        <p v-if="!refs?.recent.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
-        <ul v-else class="grid gap-2">
-          <li v-for="s in refs.recent" :key="s.id" class="flex items-center justify-between gap-2 text-sm">
-            <span class="font-bold">{{ s.note_number }}</span>
-            <span class="tabular-nums">{{ fmtDate.format(new Date(s.shipped_at)) }}</span>
-            <UBadge :color="s.status === 'diterima' ? 'success' : 'warning'" variant="subtle">{{ s.status }}</UBadge>
-          </li>
-        </ul>
+        <UTable :data="rows" :columns="columns" :loading="loading">
+          <template #shipped_at-cell="{ row }">
+            {{ fmtDate.format(new Date(row.original.shipped_at)) }}
+          </template>
+          <template #total_weight-cell="{ row }">
+            <span class="tabular-nums">{{ fmtKg(Number(row.original.total_weight)) }}</span>
+          </template>
+          <template #total_value-cell="{ row }">
+            <span class="tabular-nums">{{ fmtRp.format(Number(row.original.total_value)) }}</span>
+          </template>
+          <template #status-cell="{ row }">
+            <UBadge :color="row.original.status === 'diterima' ? 'success' : 'warning'" variant="subtle">
+              {{ row.original.status === 'diterima' ? $t('handover.received') : $t('handover.sent') }}
+            </UBadge>
+          </template>
+          <template #empty>
+            <p class="text-sm text-muted py-6 text-center">{{ $t('common.empty') }}</p>
+          </template>
+        </UTable>
+        <div v-if="total > pageSize" class="flex justify-end pt-4">
+          <UPagination v-model:page="page" :items-per-page="pageSize" :total="total" />
+        </div>
       </UCard>
     </template>
   </UDashboardPanel>

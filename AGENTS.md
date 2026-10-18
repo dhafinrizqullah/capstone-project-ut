@@ -54,6 +54,7 @@ When implementing or reviewing UI, the design skills above must be used. When to
 
 ## Notes
 
+- All dates/times use **Asia/Jakarta (GMT+7)** — windows, filters, labels, and exports. Convert any UTC source before display or comparison; never assume the server/browser timezone. Shared helpers: `useDateRange` (civil-day bounds as UTC instants), `Intl.*` with `Asia/Jakarta`.
 - Default application language is Indonesian (i18n-ready).
 - Code is always English: comments, identifiers, commit messages, logs, and test names. Indonesian lives only in UI display strings (`i18n/locales/id.json`).
 - Visual brand: deep emerald greens (gradient `emerald-950 → emerald-700`, `emerald-50` surfaces). Source of truth: `temp-project-capstone/mockups/*.html` — match it before inventing new styles.

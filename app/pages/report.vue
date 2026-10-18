@@ -16,13 +16,29 @@ const fmtStamp = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: '
 // RW-bound staff only report on their own RW
 const { scopeRw } = await useMyScope()
 
+// the activity recap follows the date window; the balance snapshot does not
+const { preset, fromDate, toDate, from, to } = useDateRange()
+
 const exporting = ref(false)
 const exportingPdf = ref(false)
 
 async function buildReport() {
+  let depQ = client.from('deposits').select('id,total_weight,total_value,deposited_at,resident_id').eq('status', 'tercatat')
+  let itemsQ = client
+    .from('deposit_items')
+    .select('deposit_id,category_name,weight_kg,price_per_kg,value,deposits!inner(status,deposited_at)')
+    .eq('deposits.status', 'tercatat')
+  if (from.value) {
+    depQ = depQ.gte('deposited_at', from.value)
+    itemsQ = itemsQ.gte('deposits.deposited_at', from.value)
+  }
+  if (to.value) {
+    depQ = depQ.lte('deposited_at', to.value)
+    itemsQ = itemsQ.lte('deposits.deposited_at', to.value)
+  }
   const [depRes, itemsRes, profRes, ledgerRes] = await Promise.all([
-    client.from('deposits').select('id,total_weight,total_value,deposited_at,resident_id').eq('status', 'tercatat'),
-    client.from('deposit_items').select('deposit_id,category_name,weight_kg,price_per_kg,value'),
+    depQ,
+    itemsQ,
     client.from('profiles').select('id,full_name,area:areas!profiles_area_id_fkey(rw,rt)').eq('role', 'warga'),
     client.from('savings_ledger').select('resident_id,type,amount'),
   ])
@@ -69,6 +85,8 @@ async function buildReport() {
 
   return {
     generated: fmtStamp.value.format(new Date()),
+    // ISO civil days: the Jakarta window the reader asked for
+    period: preset.value === 'all' ? t('dateRange.all') : `${fromDate.value} – ${toDate.value}`,
     units: scopeRw.value ?? t('common.all'),
     kpi: [
       [t('dash.kpiWaste'), `${fmtInt.value.format(Math.round(totalKg))} kg`],
@@ -83,7 +101,7 @@ async function buildReport() {
   }
 }
 
-const { data: report } = await useAsyncData('report', buildReport)
+const { data: report } = await useAsyncData('report', buildReport, { watch: [from, to] })
 
 async function exportExcel() {
   exporting.value = true
@@ -146,7 +164,8 @@ async function downloadPdf() {
     <template #body>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4 print:hidden">
         <p class="text-sm text-muted">{{ $t('report.subtitle') }}</p>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <DateRangeFilter v-model:preset="preset" v-model:from="fromDate" v-model:to="toDate" />
           <UButton icon="i-lucide-file-spreadsheet" :label="$t('report.exportExcel')" :loading="exporting" @click="exportExcel" />
           <UButton icon="i-lucide-printer" color="neutral" variant="outline" :label="$t('report.printPdf')" :loading="exportingPdf" @click="downloadPdf" />
         </div>
@@ -158,6 +177,7 @@ async function downloadPdf() {
           <h2 class="text-lg font-extrabold text-highlighted">{{ $t('report.title') }}</h2>
           <p class="text-sm text-muted">
             {{ $t('report.generated') }}: {{ report?.generated ?? '…' }}
+            · {{ $t('report.period') }}: {{ report?.period ?? '…' }}
             · {{ $t('report.ward') }}: {{ report?.units ?? '…' }}
           </p>
         </div>

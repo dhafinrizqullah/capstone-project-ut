@@ -15,25 +15,25 @@ const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency
 const fmtKg = (v: number) => `${new Intl.NumberFormat(tag.value, { maximumFractionDigits: 1 }).format(v)} kg`
 const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
 
-const { data: rows, status, refresh } = await useAsyncData('verify-deposits', async () => {
-  const { data } = await client
-    .from('deposits')
-    .select('id,resident_id,estimated_weight,deposited_at,items:deposit_items(id,category_name,weight_kg,price_per_kg),resident:profiles!deposits_resident_id_fkey(full_name,area:areas!profiles_area_id_fkey(rw,rt))')
-    .eq('status', 'menunggu')
-    .order('deposited_at', { ascending: true })
-    .limit(50)
-  return data ?? []
+const { search, rows, page, pageSize, total, loading, refresh, preset, fromDate, toDate } = useListPage({
+  key: 'verify-deposits',
+  fetch: async ({ page, pageSize, term, from, to }) => {
+    let q = client
+      .from('deposits')
+      .select('id,resident_id,estimated_weight,deposited_at,items:deposit_items(id,category_name,weight_kg,price_per_kg),resident:profiles!deposits_resident_id_fkey!inner(full_name,area:areas!profiles_area_id_fkey!inner(rw,rt))', { count: 'exact' })
+      .eq('status', 'menunggu')
+    // search the resident name; `!inner` makes the filter drop non-matching deposits
+    if (term) q = q.ilike('resident.full_name', `%${term}%`)
+    // a RW-bound petugas only validates own-RW requests
+    if (scopeRw.value) q = q.eq('resident.area.rw', scopeRw.value)
+    if (from) q = q.gte('deposited_at', from)
+    if (to) q = q.lte('deposited_at', to)
+    const { data, count } = await q.order('deposited_at', { ascending: true }).range((page - 1) * pageSize, page * pageSize - 1)
+    return { rows: data ?? [], total: count ?? 0 }
+  },
 })
 
-type Row = NonNullable<typeof rows.value>[number]
-
-// ponytail: filter locally like payouts — a RW-bound petugas only validates own-RW requests
-const visible = computed(() => (rows.value ?? []).filter(r => !scopeRw.value || residentRw(r.resident) === scopeRw.value))
-
-const { search, page, pageSize, paged, total } = useTablePage(
-  visible,
-  (r, q) => residentLabel(r.resident).toLowerCase().includes(q),
-)
+type Row = (typeof rows.value)[number]
 
 const columns: TableColumn<Row>[] = [
   { accessorKey: 'resident', header: () => t('verify.colResident') },
@@ -133,8 +133,6 @@ function residentLabel(resident: unknown) {
   const area = r.area ? ` · ${r.area.rw} · ${r.area.rt}` : ''
   return `${r.full_name}${area}`
 }
-
-const residentRw = (resident: unknown) => (resident as { area: { rw: string } | null } | null)?.area?.rw ?? null
 </script>
 
 <template>
@@ -146,10 +144,13 @@ const residentRw = (resident: unknown) => (resident as { area: { rw: string } | 
     <template #body>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
         <p class="text-sm text-muted">{{ $t('verify.subtitle') }}</p>
-        <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('common.search')" class="w-full sm:w-56" />
+          <DateRangeFilter v-model:preset="preset" v-model:from="fromDate" v-model:to="toDate" />
+        </div>
       </div>
 
-      <UTable :data="paged" :columns="columns" :loading="status === 'pending'">
+      <UTable :data="rows" :columns="columns" :loading="loading">
         <template #resident-cell="{ row }">
           {{ residentLabel(row.original.resident) }}
         </template>

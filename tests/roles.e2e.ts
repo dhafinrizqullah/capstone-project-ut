@@ -7,6 +7,8 @@ import type { RoleKey } from './helpers';
 const PAGES = {
   dash: { path: '/', title: 'Dasbor Analitik Timbulan Sampah' },
   resident: { path: '/resident', title: 'Dasbor Warga' },
+  residentWeighings: { path: '/resident/weighings', title: 'Riwayat Timbangan' },
+  residentWithdrawals: { path: '/resident/withdrawals', title: 'Riwayat Penarikan' },
   cashier: { path: '/cashier', title: 'Kasir Timbangan' },
   verify: { path: '/cashier/verify', title: 'Validasi Timbangan Warga' },
   prices: { path: '/cashier/prices', title: 'Master Harga Sampah' },
@@ -21,13 +23,15 @@ const PAGES = {
 
 // The sidebar menu each role gets, in DOM order (layouts/dashboard.vue).
 const MENU: Record<RoleKey, string[]> = {
-  warga: ['Dasbor Warga'],
+  warga: ['Dasbor Warga', 'Riwayat Timbangan', 'Riwayat Penarikan'],
   petugas: ['Kasir Timbangan', 'Validasi Timbangan', 'Master Harga', 'Validasi Pencairan', 'Kirim ke Pengepul'],
   pengepul: ['Nota Serah Terima'],
   pengurus_rw: ['Dasbor Analitik', 'Master Harga', 'Laporan RW'],
   superadmin: [
     'Dasbor Analitik',
     'Dasbor Warga',
+    'Riwayat Timbangan',
+    'Riwayat Penarikan',
     'Kasir Timbangan',
     'Validasi Timbangan',
     'Master Harga',
@@ -42,23 +46,23 @@ const MENU: Record<RoleKey, string[]> = {
 
 const ROLES: Record<RoleKey, { pages: Array<keyof typeof PAGES>, denied: string[] }> = {
   warga: {
-    pages: ['resident', 'denied'],
+    pages: ['resident', 'residentWeighings', 'residentWithdrawals', 'denied'],
     denied: ['/', '/cashier', '/cashier/verify', '/cashier/prices', '/cashier/payouts', '/cashier/shipments', '/handover', '/report', '/admin/users', '/admin/areas'],
   },
   petugas: {
     pages: ['cashier', 'verify', 'prices', 'payouts', 'shipments', 'denied'],
-    denied: ['/', '/resident', '/handover', '/report', '/admin/users', '/admin/areas'],
+    denied: ['/', '/resident', '/resident/weighings', '/resident/withdrawals', '/handover', '/report', '/admin/users', '/admin/areas'],
   },
   pengepul: {
     pages: ['handover', 'denied'],
-    denied: ['/', '/resident', '/cashier', '/cashier/verify', '/cashier/prices', '/cashier/payouts', '/cashier/shipments', '/report', '/admin/users', '/admin/areas'],
+    denied: ['/', '/resident', '/resident/weighings', '/resident/withdrawals', '/cashier', '/cashier/verify', '/cashier/prices', '/cashier/payouts', '/cashier/shipments', '/report', '/admin/users', '/admin/areas'],
   },
   pengurus_rw: {
     pages: ['dash', 'prices', 'report', 'denied'],
-    denied: ['/resident', '/cashier', '/cashier/verify', '/cashier/payouts', '/cashier/shipments', '/handover', '/admin/users', '/admin/areas'],
+    denied: ['/resident', '/resident/weighings', '/resident/withdrawals', '/cashier', '/cashier/verify', '/cashier/payouts', '/cashier/shipments', '/handover', '/admin/users', '/admin/areas'],
   },
   superadmin: {
-    pages: ['dash', 'resident', 'cashier', 'verify', 'prices', 'payouts', 'shipments', 'handover', 'report', 'users', 'areas', 'denied'],
+    pages: ['dash', 'resident', 'residentWeighings', 'residentWithdrawals', 'cashier', 'verify', 'prices', 'payouts', 'shipments', 'handover', 'report', 'users', 'areas', 'denied'],
     denied: [],
   },
 };

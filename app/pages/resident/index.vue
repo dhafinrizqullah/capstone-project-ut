@@ -13,18 +13,15 @@ const toast = useToast()
 const tag = computed(() => (locale.value === 'id' ? 'id-ID' : 'en-US'))
 const fmtRp = computed(() => new Intl.NumberFormat(tag.value, { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }))
 const fmtKg = (v: number) => `${new Intl.NumberFormat(tag.value, { maximumFractionDigits: 1 }).format(v)} kg`
-const fmtDate = computed(() => new Intl.DateTimeFormat(tag.value, { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric' }))
 
+// histories live on their own pages (/resident/weighings, /resident/withdrawals)
 const { data, status, refresh } = await useAsyncData('resident', async () => {
-  const [cats, deps, ledger, wds] = await Promise.all([
+  const [cats, ledger] = await Promise.all([
     client.from('waste_categories').select('id,name,price_per_kg').eq('active', true).order('name'),
-    // own requests show up too: pending ones wait for the petugas, rejected ones stay visible
-    client.from('deposits').select('id,total_weight,total_value,deposited_at,status').eq('resident_id', uid).order('deposited_at', { ascending: false }).limit(20),
     client.from('savings_ledger').select('type,amount'),
-    client.from('withdrawals').select('id,amount,status,created_at').eq('resident_id', uid).order('created_at', { ascending: false }).limit(20),
   ])
   // ledger RLS already scopes rows to the owner
-  return { cats: cats.data ?? [], deps: deps.data ?? [], ledger: ledger.data ?? [], wds: wds.data ?? [] }
+  return { cats: cats.data ?? [], ledger: ledger.data ?? [] }
 })
 
 const loading = computed(() => status.value === 'pending' || status.value === 'idle')
@@ -47,9 +44,6 @@ async function onWithdraw(event: FormSubmitEvent<Schema>) {
   toast.add({ title: t('resident.withdrawSent'), color: 'success' })
   await refresh()
 }
-
-const statusColor = (s: string) => s === 'disetujui' ? 'success' : s === 'ditolak' ? 'error' : 'warning'
-const statusLabel = (s: string) => s === 'disetujui' ? t('resident.approved') : s === 'ditolak' ? t('resident.rejected') : t('resident.pending')
 
 // --- self-service weighing request -------------------------------------------
 // The resident declares the weight; a petugas re-weighs it before it counts.
@@ -117,12 +111,6 @@ async function submitDeposit() {
   toast.add({ title: t('resident.depositSent'), color: 'success' })
   await refresh()
 }
-
-const depositStatus = (s: string) => s === 'tercatat'
-  ? { color: 'success' as const, label: t('dash.recorded') }
-  : s === 'menunggu'
-    ? { color: 'warning' as const, label: t('resident.pending') }
-    : { color: 'error' as const, label: t('resident.rejected') }
 </script>
 
 <template>
@@ -155,15 +143,26 @@ const depositStatus = (s: string) => s === 'tercatat'
 
           <UCard>
             <template #header>
-              <h2 class="font-bold">{{ $t('resident.withdrawHistory') }}</h2>
+              <h2 class="font-bold">{{ $t('resident.histories') }}</h2>
             </template>
-            <p v-if="!data?.wds.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
-            <ul v-else class="grid gap-2">
-              <li v-for="w in data.wds" :key="w.id" class="flex items-center justify-between gap-2 text-sm">
-                <span class="tabular-nums">{{ fmtRp.format(Number(w.amount)) }} · {{ fmtDate.format(new Date(w.created_at)) }}</span>
-                <UBadge :color="statusColor(w.status)" variant="subtle">{{ statusLabel(w.status) }}</UBadge>
-              </li>
-            </ul>
+            <div class="grid gap-2">
+              <UButton
+                to="/resident/weighings"
+                icon="i-lucide-scale"
+                color="neutral"
+                variant="outline"
+                :label="$t('resident.history')"
+                block
+              />
+              <UButton
+                to="/resident/withdrawals"
+                icon="i-lucide-banknote"
+                color="neutral"
+                variant="outline"
+                :label="$t('resident.withdrawHistory')"
+                block
+              />
+            </div>
           </UCard>
         </div>
 
@@ -218,36 +217,6 @@ const depositStatus = (s: string) => s === 'tercatat'
                 <span class="font-bold tabular-nums">{{ fmtRp.format(Number(c.price_per_kg)) }}{{ $t('resident.perKg') }}</span>
               </li>
             </ul>
-          </UCard>
-
-          <UCard>
-            <template #header>
-              <h2 class="font-bold">{{ $t('resident.history') }}</h2>
-            </template>
-            <p v-if="!data?.deps.length" class="text-sm text-muted">{{ $t('common.empty') }}</p>
-            <div v-else class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="text-left text-xs uppercase tracking-wide text-muted">
-                    <th class="py-2 pr-2">{{ $t('resident.colDate') }}</th>
-                    <th class="py-2 pr-2">{{ $t('resident.colWeight') }}</th>
-                    <th class="py-2 pr-2">{{ $t('resident.colValue') }}</th>
-                    <th class="py-2">{{ $t('resident.colStatus') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="d in data.deps" :key="d.id" class="border-t border-muted">
-                    <td class="py-2 pr-2">{{ fmtDate.format(new Date(d.deposited_at)) }}</td>
-                    <!-- final weight: the declared one until a petugas re-weighs it -->
-                    <td class="py-2 pr-2 tabular-nums">{{ fmtKg(Number(d.total_weight)) }}</td>
-                    <td class="py-2 pr-2 tabular-nums">{{ fmtRp.format(Number(d.total_value)) }}</td>
-                    <td class="py-2">
-                      <UBadge :color="depositStatus(d.status).color" variant="subtle">{{ depositStatus(d.status).label }}</UBadge>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
           </UCard>
         </div>
       </div>

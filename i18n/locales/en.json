@@ -4,6 +4,8 @@
   "nav": {
     "dashboard": "Analytics Dashboard",
     "resident": "Resident Dashboard",
+    "residentWeighings": "Weighing History",
+    "residentWithdrawals": "Withdrawal History",
     "cashier": "Weighing Cashier",
     "verify": "Weighing Validation",
     "prices": "Price Master",
@@ -27,6 +29,17 @@
     "empty": "No data yet.",
     "language": "Language",
     "all": "All"
+  },
+  "dateRange": {
+    "label": "Date range",
+    "thisMonth": "This month",
+    "last3Months": "Last 3 months",
+    "thisYear": "This year",
+    "lastYear": "Last year",
+    "all": "All time",
+    "custom": "Custom",
+    "from": "From date",
+    "to": "To date"
   },
   "auth": {
     "title": "Sign in",
@@ -73,6 +86,9 @@
     "prices": "Current Waste Prices",
     "perKg": "/kg",
     "history": "Weighing History",
+    "histories": "History",
+    "weighingsSubtitle": "Your waste drop-offs and weighings.",
+    "withdrawalsSubtitle": "Your withdrawal requests.",
     "withdraw": "Request Withdrawal",
     "amount": "Amount (IDR)",
     "amountMin": "Minimum amount IDR 10,000",
@@ -85,6 +101,7 @@
     "colDate": "Date",
     "colWeight": "Weight",
     "colValue": "Value",
+    "colAmount": "Amount",
     "colStatus": "Status",
     "selfTitle": "Drop Off Your Waste",
     "selfSubtitle": "Record your waste weight, then hand it to the RW operator for re-weighing. Verification sets its final weight and value.",
@@ -183,7 +200,7 @@
     "issued": "Note {note} issued.",
     "needCollector": "Pick a collector first.",
     "needItem": "Add at least one item.",
-    "history": "Recent Shipments"
+    "history": "Shipment History"
   },
   "handover": {
     "title": "Handover Notes",
@@ -207,6 +224,7 @@
     "printPdf": "Print / PDF",
     "hint": "Excel holds the KPI summary, per category, per unit, plus one row per weighing and per item line. PDF downloads directly as a file.",
     "generated": "Generated",
+    "period": "Period",
     "ward": "Ward",
     "summary": "Summary",
     "totalValue": "Collected value",

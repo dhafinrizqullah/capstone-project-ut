@@ -4,6 +4,8 @@
   "nav": {
     "dashboard": "Dasbor Analitik",
     "resident": "Dasbor Warga",
+    "residentWeighings": "Riwayat Timbangan",
+    "residentWithdrawals": "Riwayat Penarikan",
     "cashier": "Kasir Timbangan",
     "verify": "Validasi Timbangan",
     "prices": "Master Harga",
@@ -27,6 +29,17 @@
     "empty": "Belum ada data.",
     "language": "Bahasa",
     "all": "Semua"
+  },
+  "dateRange": {
+    "label": "Rentang tanggal",
+    "thisMonth": "Bulan ini",
+    "last3Months": "3 bulan terakhir",
+    "thisYear": "Tahun ini",
+    "lastYear": "Tahun lalu",
+    "all": "Semua waktu",
+    "custom": "Kustom",
+    "from": "Dari tanggal",
+    "to": "Sampai tanggal"
   },
   "auth": {
     "title": "Masuk",
@@ -73,6 +86,9 @@
     "prices": "Harga Sampah Terkini",
     "perKg": "/kg",
     "history": "Riwayat Timbangan",
+    "histories": "Riwayat",
+    "weighingsSubtitle": "Riwayat setoran dan penimbangan sampahmu.",
+    "withdrawalsSubtitle": "Riwayat pengajuan penarikan dana.",
     "withdraw": "Ajukan Penarikan",
     "amount": "Nominal (Rp)",
     "amountMin": "Nominal minimal Rp 10.000",
@@ -85,6 +101,7 @@
     "colDate": "Tanggal",
     "colWeight": "Berat",
     "colValue": "Nilai",
+    "colAmount": "Nominal",
     "colStatus": "Status",
     "selfTitle": "Setor Sampah Sendiri",
     "selfSubtitle": "Catat berat sampahmu, lalu serahkan ke petugas RW untuk ditimbang ulang. Verifikasi menentukan berat dan nilai akhirnya.",
@@ -182,7 +199,7 @@
     "issued": "Nota {note} diterbitkan.",
     "needCollector": "Pilih pengepul dulu.",
     "needItem": "Tambahkan minimal satu item.",
-    "history": "Pengiriman Terakhir"
+    "history": "Riwayat Pengiriman"
   },
   "handover": {
     "title": "Nota Serah Terima",
@@ -206,6 +223,7 @@
     "printPdf": "Cetak / PDF",
     "hint": "Excel berisi ringkasan KPI, per kategori, per RT, plus satu baris per penimbangan dan per item. PDF diunduh langsung sebagai file.",
     "generated": "Dibuat",
+    "period": "Periode",
     "ward": "Wilayah",
     "summary": "Ringkasan",
     "totalValue": "Nilai timbulan",
