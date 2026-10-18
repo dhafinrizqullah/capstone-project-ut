@@ -70,7 +70,13 @@ async function logout() {
         // ponytail: the theme ships no width transition — a collapsed rail that
         // jumps reads as a glitch. overflow-hidden keeps growing labels inside.
         root: 'overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
+        // body is overflow-y-auto, which computes overflow-x to auto too — while the rail animates
+        // its width, the nav is still laid out at full size and the OS paints a horizontal
+        // scrollbar above the footer (a white bar). Clip instead of scroll.
+        body: 'overflow-x-hidden',
         content: 'bg-gradient-to-b from-emerald-950 to-emerald-700 text-emerald-50',
+        // ponytail: the slideover close X inherits neutral ghost colours — dark on the emerald gradient
+        toggle: 'shrink-0 text-white hover:bg-white/10 hover:text-white',
       }"
     >
       <template #header="{ collapsed }">
@@ -116,64 +122,80 @@ async function logout() {
 
       <template #footer="{ collapsed }">
         <div class="flex w-full flex-col gap-2">
-          <!-- One tap, no dropdown: two locales fit side by side -->
-          <div v-if="!collapsed" class="flex items-center gap-1.5">
-            <div
-              class="relative flex flex-1 rounded-xl bg-white/10 p-1 text-xs font-semibold"
-              role="group"
-              :aria-label="$t('common.language')"
-            >
-              <span
-                aria-hidden="true"
-                class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-white shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
-                :style="{ transform: `translateX(${localeIndex * 100}%)` }"
-              />
-              <button
-                v-for="l in locales"
-                :key="l.code"
-                type="button"
-                class="relative flex-1 rounded-lg px-2 py-1.5 transition-colors duration-200 motion-reduce:transition-none"
-                :class="locale === l.code ? 'text-emerald-900' : 'text-emerald-100 hover:text-white'"
-                :aria-pressed="locale === l.code"
-                @click="setLocale(l.code)"
+          <!-- One tap, no dropdown: two locales fit side by side.
+               ponytail: the rail animates its width only, so a row that mounts instantly paints at
+               its final width and the white pill gets sheared at the moving edge — fade the swap
+               in, so the rail's edge stays the only thing that moves. -->
+          <Transition
+            mode="out-in"
+            enter-active-class="transition-opacity duration-300 ease-out motion-reduce:transition-none"
+            enter-from-class="opacity-0"
+          >
+            <div v-if="!collapsed" class="flex items-center gap-1.5">
+              <div
+                class="relative flex flex-1 rounded-xl bg-white/10 p-1 text-xs font-semibold"
+                role="group"
+                :aria-label="$t('common.language')"
               >
-                {{ l.name }}
-              </button>
+                <span
+                  aria-hidden="true"
+                  class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-white shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
+                  :style="{ transform: `translateX(${localeIndex * 100}%)` }"
+                />
+                <button
+                  v-for="l in locales"
+                  :key="l.code"
+                  type="button"
+                  class="relative flex-1 rounded-lg px-2 py-1.5 transition-colors duration-200 motion-reduce:transition-none"
+                  :class="locale === l.code ? 'text-emerald-900' : 'text-emerald-100 hover:text-white'"
+                  :aria-pressed="locale === l.code"
+                  @click="setLocale(l.code)"
+                >
+                  {{ l.name }}
+                </button>
+              </div>
+              <UColorModeButton class="text-emerald-50 hover:bg-white/10 hover:text-white" />
             </div>
-            <UColorModeButton class="text-emerald-50 hover:bg-white/10 hover:text-white" />
-          </div>
-          <div v-else class="flex flex-col items-center gap-2">
+            <div v-else class="flex flex-col items-center gap-2">
+              <UButton
+                icon="i-lucide-globe"
+                color="neutral"
+                variant="ghost"
+                class="text-white hover:bg-white/10"
+                :aria-label="$t('common.language')"
+                :title="`${$t('common.language')}: ${otherLocale?.name}`"
+                @click="setLocale(otherLocale?.code ?? 'id')"
+              />
+              <UColorModeButton class="text-emerald-50 hover:bg-white/10 hover:text-white" />
+            </div>
+          </Transition>
+
+          <Transition
+            mode="out-in"
+            enter-active-class="transition-opacity duration-300 ease-out motion-reduce:transition-none"
+            enter-from-class="opacity-0"
+          >
+            <div v-if="!collapsed" class="rounded-2xl bg-white/10 p-4 text-sm">
+              <strong class="block truncate text-white">{{ profile?.full_name }}</strong>
+              <UButton
+                :label="$t('common.logout')"
+                color="neutral"
+                variant="ghost"
+                block
+                class="mt-3 !bg-white/20 text-white hover:!bg-white/30"
+                @click="logout"
+              />
+            </div>
             <UButton
-              icon="i-lucide-globe"
+              v-else
+              icon="i-lucide-log-out"
               color="neutral"
               variant="ghost"
               class="text-white hover:bg-white/10"
-              :aria-label="$t('common.language')"
-              :title="`${$t('common.language')}: ${otherLocale?.name}`"
-              @click="setLocale(otherLocale?.code ?? 'id')"
-            />
-            <UColorModeButton class="text-emerald-50 hover:bg-white/10 hover:text-white" />
-          </div>
-          <div v-if="!collapsed" class="rounded-2xl bg-white/10 p-4 text-sm">
-            <strong class="block truncate text-white">{{ profile?.full_name }}</strong>
-            <UButton
-              :label="$t('common.logout')"
-              color="neutral"
-              variant="ghost"
-              block
-              class="mt-3 !bg-white/20 text-white hover:!bg-white/30"
+              :aria-label="$t('common.logout')"
               @click="logout"
             />
-          </div>
-          <UButton
-            v-else
-            icon="i-lucide-log-out"
-            color="neutral"
-            variant="ghost"
-            class="text-white hover:bg-white/10"
-            :aria-label="$t('common.logout')"
-            @click="logout"
-          />
+          </Transition>
         </div>
       </template>
     </UDashboardSidebar>

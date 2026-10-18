@@ -311,12 +311,14 @@ onUnmounted(() => {
           </article>
         </section>
 
+        <!-- ponytail: min-w-0 — a canvas carries its last pixel width as intrinsic size, and a
+             grid item's automatic min size would refuse to shrink back after the sidebar reopens -->
         <section class="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-4 mb-5">
-          <article class="bg-default border border-default rounded-2xl p-5 shadow-sm">
+          <article class="min-w-0 bg-default border border-default rounded-2xl p-5 shadow-sm">
             <h2 class="font-bold mb-3">{{ $t('dash.trend') }}</h2>
             <div class="h-72"><canvas ref="trendCanvas" /></div>
           </article>
-          <article class="bg-default border border-default rounded-2xl p-5 shadow-sm">
+          <article class="min-w-0 bg-default border border-default rounded-2xl p-5 shadow-sm">
             <h2 class="font-bold mb-3">{{ $t('dash.composition') }}</h2>
             <div class="h-72"><canvas ref="categoryCanvas" /></div>
           </article>
