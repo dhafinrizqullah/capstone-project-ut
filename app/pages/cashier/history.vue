@@ -40,22 +40,40 @@ const columns: TableColumn<Row>[] = [
   { id: 'actions' },
 ]
 
-// ponytail: expanded state is keyed by row id; line items are fetched on first open
+// ponytail: expanded state is keyed by the deposit id; line items are fetched on first open.
+// UTable needs get-row-id below, otherwise its expanded keys are 0-based indexes and
+// this uuid-keyed map never matches, so the expanded slot stays hidden.
 const expanded = ref<Record<string, boolean>>({})
 const itemsCache = ref<Record<string, { name: string, weightKg: number, price: number, value: number }[]>>({})
+const itemsLoading = ref<string | null>(null)
+const toast = useToast()
 
 async function toggle(row: Row) {
   const isOpen = !!expanded.value[row.id]
   expanded.value = { ...expanded.value, [row.id]: !isOpen }
-  if (isOpen || itemsCache.value[row.id]) return
-  const { data } = await client
-    .from('deposit_items')
-    .select('category_name,weight_kg,price_per_kg,value')
-    .eq('deposit_id', row.id)
+  if (isOpen || itemsCache.value[row.id] || itemsLoading.value === row.id) return
+  itemsLoading.value = row.id
+  let data: Awaited<ReturnType<typeof client.from<never>>>
+  try {
+    data = await client
+      .from('deposit_items')
+      .select('category_name,weight_kg,price_per_kg,value')
+      .eq('deposit_id', row.id)
+  }
+  catch (e) {
+    itemsLoading.value = null
+    toast.add({ title: (e as Error).message, color: 'error' })
+    return
+  }
+  itemsLoading.value = null
+  if (data.error) {
+    toast.add({ title: data.error.message, color: 'error' })
+    return
+  }
   // the line carries its own snapshot: renaming the master never rewrites a weighing
   itemsCache.value = {
     ...itemsCache.value,
-    [row.id]: (data ?? []).map(i => ({
+    [row.id]: (data.data ?? []).map(i => ({
       name: i.category_name,
       weightKg: Number(i.weight_kg),
       price: Number(i.price_per_kg),
@@ -95,7 +113,7 @@ const depositStatus = (s: string) => s === 'tercatat'
         </div>
       </div>
 
-      <UTable v-model:expanded="expanded" :data="rows" :columns="columns" :loading="loading">
+      <UTable v-model:expanded="expanded" :data="rows" :columns="columns" :loading="loading" :get-row-id="row => row.id">
         <template #deposited_at-cell="{ row }">
           {{ fmtDate.format(new Date(row.original.deposited_at)) }}
         </template>
