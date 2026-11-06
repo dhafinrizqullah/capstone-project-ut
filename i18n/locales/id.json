@@ -7,6 +7,7 @@
     "residentWeighings": "Riwayat Timbangan",
     "residentWithdrawals": "Riwayat Penarikan",
     "cashier": "Kasir Timbangan",
+    "history": "Riwayat Timbangan",
     "verify": "Validasi Timbangan",
     "prices": "Master Harga",
     "payouts": "Validasi Pencairan",
@@ -116,6 +117,14 @@
     "needWeight": "Berat wajib diisi dan harus berupa angka.",
     "needItem": "Tambahkan minimal satu item."
   },
+  "history": {
+    "title": "Riwayat Timbangan",
+    "subtitle": "Lihat hasil seluruh penimbangan warga di RW kamu.",
+    "colResident": "Warga",
+    "showDetail": "Lihat rincian",
+    "hideDetail": "Tutup rincian",
+    "items": "Rincian timbangan"
+  },
   "verify": {
     "title": "Validasi Timbangan Warga",
     "subtitle": "Timbang ulang setoran warga, sesuaikan beratnya, lalu verifikasi atau tolak.",
@@ -190,6 +199,7 @@
   "ship": {    "title": "Kirim ke Pengepul",
     "subtitle": "Catat muatan keluar dan terbitkan nota digital.",
     "collector": "Pengepul",
+    "operator": "Petugas",
     "pickCollector": "Pilih pengepul…",
     "category": "Kategori",
     "weightKg": "Berat (kg)",
@@ -214,7 +224,8 @@
     "value": "Nilai",
     "items": "Rincian muatan",
     "showDetail": "Lihat rincian",
-    "hideDetail": "Tutup rincian"
+    "hideDetail": "Tutup rincian",
+    "downloadPdf": "Unduh PDF"
   },
   "report": {
     "title": "Laporan RW",

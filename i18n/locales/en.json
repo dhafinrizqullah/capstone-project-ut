@@ -7,6 +7,7 @@
     "residentWeighings": "Weighing History",
     "residentWithdrawals": "Withdrawal History",
     "cashier": "Weighing Cashier",
+    "history": "Weighing History",
     "verify": "Weighing Validation",
     "prices": "Price Master",
     "payouts": "Payout Validation",
@@ -116,6 +117,14 @@
     "needWeight": "Weight is required and must be a number.",
     "needItem": "Add at least one item."
   },
+  "history": {
+    "title": "Weighing History",
+    "subtitle": "View all resident weighings in your ward.",
+    "colResident": "Resident",
+    "showDetail": "View details",
+    "hideDetail": "Hide details",
+    "items": "Weighing details"
+  },
   "verify": {
     "title": "Resident Weighing Validation",
     "subtitle": "Re-weigh resident drop-offs, correct the weights, then verify or reject.",
@@ -191,6 +200,7 @@
     "title": "Ship to Collector",
     "subtitle": "Record outbound load and issue a digital note.",
     "collector": "Collector",
+    "operator": "Operator",
     "pickCollector": "Pick a collector…",
     "category": "Category",
     "weightKg": "Weight (kg)",
@@ -215,7 +225,8 @@
     "value": "Value",
     "items": "Load details",
     "showDetail": "View details",
-    "hideDetail": "Hide details"
+    "hideDetail": "Hide details",
+    "downloadPdf": "Download PDF"
   },
   "report": {
     "title": "Community Report",

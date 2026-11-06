@@ -10,6 +10,7 @@ const PAGES = {
   residentWeighings: { path: '/resident/weighings', title: 'Riwayat Timbangan' },
   residentWithdrawals: { path: '/resident/withdrawals', title: 'Riwayat Penarikan' },
   cashier: { path: '/cashier', title: 'Kasir Timbangan' },
+  history: { path: '/cashier/history', title: 'Riwayat Timbangan' },
   verify: { path: '/cashier/verify', title: 'Validasi Timbangan Warga' },
   prices: { path: '/cashier/prices', title: 'Master Harga Sampah' },
   payouts: { path: '/cashier/payouts', title: 'Validasi Pencairan' },
@@ -24,7 +25,7 @@ const PAGES = {
 // The sidebar menu each role gets, in DOM order (layouts/dashboard.vue).
 const MENU: Record<RoleKey, string[]> = {
   warga: ['Dasbor Warga', 'Riwayat Timbangan', 'Riwayat Penarikan'],
-  petugas: ['Kasir Timbangan', 'Validasi Timbangan', 'Master Harga', 'Validasi Pencairan', 'Kirim ke Pengepul'],
+  petugas: ['Kasir Timbangan', 'Riwayat Timbangan', 'Validasi Timbangan', 'Master Harga', 'Validasi Pencairan', 'Kirim ke Pengepul'],
   pengepul: ['Nota Serah Terima'],
   pengurus_rw: ['Dasbor Analitik', 'Master Harga', 'Laporan RW'],
   superadmin: [
@@ -33,6 +34,7 @@ const MENU: Record<RoleKey, string[]> = {
     'Riwayat Timbangan',
     'Riwayat Penarikan',
     'Kasir Timbangan',
+    'Riwayat Timbangan',
     'Validasi Timbangan',
     'Master Harga',
     'Validasi Pencairan',
@@ -50,7 +52,7 @@ const ROLES: Record<RoleKey, { pages: Array<keyof typeof PAGES>, denied: string[
     denied: ['/', '/cashier', '/cashier/verify', '/cashier/prices', '/cashier/payouts', '/cashier/shipments', '/handover', '/report', '/admin/users', '/admin/areas'],
   },
   petugas: {
-    pages: ['cashier', 'verify', 'prices', 'payouts', 'shipments', 'denied'],
+    pages: ['cashier', 'history', 'verify', 'prices', 'payouts', 'shipments', 'denied'],
     denied: ['/', '/resident', '/resident/weighings', '/resident/withdrawals', '/handover', '/report', '/admin/users', '/admin/areas'],
   },
   pengepul: {
@@ -62,7 +64,7 @@ const ROLES: Record<RoleKey, { pages: Array<keyof typeof PAGES>, denied: string[
     denied: ['/resident', '/resident/weighings', '/resident/withdrawals', '/cashier', '/cashier/verify', '/cashier/payouts', '/cashier/shipments', '/handover', '/admin/users', '/admin/areas'],
   },
   superadmin: {
-    pages: ['dash', 'resident', 'residentWeighings', 'residentWithdrawals', 'cashier', 'verify', 'prices', 'payouts', 'shipments', 'handover', 'report', 'users', 'areas', 'denied'],
+    pages: ['dash', 'resident', 'residentWeighings', 'residentWithdrawals', 'cashier', 'history', 'verify', 'prices', 'payouts', 'shipments', 'handover', 'report', 'users', 'areas', 'denied'],
     denied: [],
   },
 };

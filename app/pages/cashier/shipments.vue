@@ -41,7 +41,9 @@ const columns: TableColumn<Row>[] = [
   { accessorKey: 'total_weight', header: () => t('handover.weight') },
   { accessorKey: 'total_value', header: () => t('handover.value') },
   { accessorKey: 'status', header: () => t('common.status') },
+  { id: 'actions' },
 ]
+const pdfBusy = ref<number | null>(null)
 
 const collectorId = ref<string>()
 const categoryId = ref<number>()
@@ -102,6 +104,71 @@ async function submit() {
   collectorId.value = undefined
   toast.add({ title: t('ship.issued', { note: ship.note_number }), color: 'success' })
   await refresh()
+}
+
+async function downloadPdf(ship: Row) {
+  pdfBusy.value = ship.id
+  try {
+    const { jsPDF } = await import('jspdf')
+    const { drawShipmentNotePdf } = await import('~/utils/shipment-note-pdf')
+
+    const [detail, itemsRes] = await Promise.all([
+      client
+        .from('shipments')
+        .select('note_number,total_weight,total_value,status,shipped_at,collector:profiles!shipments_collector_id_fkey(full_name),operator:profiles!shipments_operator_id_fkey(full_name)')
+        .eq('id', ship.id)
+        .single(),
+      client
+        .from('shipment_items')
+        .select('category_name,weight_kg,price_per_kg,value')
+        .eq('shipment_id', ship.id),
+    ])
+    if (detail.error || !detail.data) throw new Error(detail.error?.message ?? 'Error')
+    if (itemsRes.error) throw new Error(itemsRes.error.message)
+
+    const d = detail.data
+    const collectorName = (d.collector as unknown as { full_name: string } | null)?.full_name ?? '-'
+    const operatorName = (d.operator as unknown as { full_name: string } | null)?.full_name ?? '-'
+    const pdfItems = (itemsRes.data ?? []).map(i => ({
+      name: i.category_name,
+      weightKg: Number(i.weight_kg),
+      price: Number(i.price_per_kg),
+      value: Number(i.value),
+    }))
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    drawShipmentNotePdf(doc, {
+      title: t('handover.title'),
+      masthead: [t('brand').toUpperCase(), t('ship.collector')],
+      noteNumber: `${t('handover.note')} ${d.note_number ?? ship.note_number ?? ''}`,
+      shippedAt: fmtDate.value.format(new Date(d.shipped_at)),
+      collector: collectorName,
+      operator: operatorName,
+      status: d.status === 'diterima' ? t('handover.received') : t('handover.sent'),
+      totalWeight: fmtKg(Number(d.total_weight)),
+      totalValue: fmtRp.value.format(Number(d.total_value)),
+      items: pdfItems,
+      formatWeight: v => fmtKg(v),
+      formatValue: v => fmtRp.value.format(v),
+      collectorLabel: t('ship.collector'),
+      operatorLabel: t('ship.operator'),
+      dateLabel: t('handover.date'),
+      statusLabel: t('common.status'),
+      itemsLabel: t('handover.items'),
+      totalLabel: t('report.totalValue'),
+      signatures: {
+        leftLabel: t('ship.operator'),
+        rightLabel: t('ship.collector'),
+        leftName: operatorName,
+        rightName: collectorName,
+      },
+    })
+    doc.save(`nota-${d.note_number ?? ship.note_number ?? ship.id}.pdf`)
+  }
+  catch (e) {
+    toast.add({ title: (e as Error).message, color: 'error' })
+  }
+  pdfBusy.value = null
 }
 </script>
 
@@ -191,6 +258,17 @@ async function submit() {
             <UBadge :color="row.original.status === 'diterima' ? 'success' : 'warning'" variant="subtle">
               {{ row.original.status === 'diterima' ? $t('handover.received') : $t('handover.sent') }}
             </UBadge>
+          </template>
+          <template #actions-cell="{ row }">
+            <UButton
+              size="xs"
+              icon="i-lucide-printer"
+              color="neutral"
+              variant="outline"
+              :label="$t('handover.downloadPdf')"
+              :loading="pdfBusy === row.original.id"
+              @click="downloadPdf(row.original)"
+            />
           </template>
           <template #empty>
             <p class="text-sm text-muted py-6 text-center">{{ $t('common.empty') }}</p>

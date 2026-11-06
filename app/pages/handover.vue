@@ -30,23 +30,90 @@ const { search, rows: ships, page, pageSize, total, loading, refresh, preset, fr
 })
 
 const expanded = ref<number | null>(null)
-const itemsCache = ref<Record<number, { name: string, weightKg: number, value: number }[]>>({})
+const itemsCache = ref<Record<number, { name: string, weightKg: number, value: number, price: number }[]>>({})
 const confirming = ref<number | null>(null)
+const pdfBusy = ref<number | null>(null)
 
 async function toggle(id: number) {
   expanded.value = expanded.value === id ? null : id
   if (expanded.value === id && !itemsCache.value[id]) {
     const { data } = await client
       .from('shipment_items')
-      .select('category_name,weight_kg,value')
+      .select('category_name,weight_kg,price_per_kg,value')
       .eq('shipment_id', id)
     // the line carries its own name: renaming the master never rewrites a note
     itemsCache.value[id] = (data ?? []).map(i => ({
       name: i.category_name,
       weightKg: Number(i.weight_kg),
+      price: Number(i.price_per_kg),
       value: Number(i.value),
     }))
   }
+}
+
+async function downloadPdf(ship: (typeof ships.value)[number]) {
+  pdfBusy.value = ship.id
+  try {
+    const { jsPDF } = await import('jspdf')
+    const { drawShipmentNotePdf } = await import('~/utils/shipment-note-pdf')
+
+    const [detail, itemsRes] = await Promise.all([
+      client
+        .from('shipments')
+        .select('note_number,total_weight,total_value,status,shipped_at,collector:profiles!shipments_collector_id_fkey(full_name),operator:profiles!shipments_operator_id_fkey(full_name)')
+        .eq('id', ship.id)
+        .single(),
+      client
+        .from('shipment_items')
+        .select('category_name,weight_kg,price_per_kg,value')
+        .eq('shipment_id', ship.id),
+    ])
+    if (detail.error || !detail.data) throw new Error(detail.error?.message ?? 'Error')
+    if (itemsRes.error) throw new Error(itemsRes.error.message)
+
+    const d = detail.data
+    const collectorName = (d.collector as unknown as { full_name: string } | null)?.full_name ?? '-'
+    const operatorName = (d.operator as unknown as { full_name: string } | null)?.full_name ?? '-'
+    const items = (itemsRes.data ?? []).map(i => ({
+      name: i.category_name,
+      weightKg: Number(i.weight_kg),
+      price: Number(i.price_per_kg),
+      value: Number(i.value),
+    }))
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    drawShipmentNotePdf(doc, {
+      title: t('handover.title'),
+      masthead: [t('brand').toUpperCase(), t('ship.collector')],
+      noteNumber: `${t('handover.note')} ${d.note_number ?? ship.note_number ?? ''}`,
+      shippedAt: fmtDate.value.format(new Date(d.shipped_at)),
+      collector: collectorName,
+      operator: operatorName,
+      status: d.status === 'diterima' ? t('handover.received') : t('handover.sent'),
+      totalWeight: fmtKg(Number(d.total_weight)),
+      totalValue: fmtRp.value.format(Number(d.total_value)),
+      items,
+      formatWeight: v => fmtKg(v),
+      formatValue: v => fmtRp.value.format(v),
+      collectorLabel: t('ship.collector'),
+      operatorLabel: t('ship.operator'),
+      dateLabel: t('handover.date'),
+      statusLabel: t('common.status'),
+      itemsLabel: t('handover.items'),
+      totalLabel: t('report.totalValue'),
+      signatures: {
+        leftLabel: t('ship.operator'),
+        rightLabel: t('ship.collector'),
+        leftName: operatorName,
+        rightName: collectorName,
+      },
+    })
+    doc.save(`nota-${d.note_number ?? ship.note_number ?? ship.id}.pdf`)
+  }
+  catch (e) {
+    toast.add({ title: (e as Error).message, color: 'error' })
+  }
+  pdfBusy.value = null
 }
 
 async function confirm(id: number) {
@@ -122,8 +189,16 @@ async function confirm(id: number) {
               </li>
             </ul>
           </div>
-          <div v-if="s.status !== 'diterima'" class="mt-3">
-            <UButton :label="$t('handover.confirm')" :loading="confirming === s.id" @click="confirm(s.id)" />
+          <div class="mt-3 flex flex-wrap gap-2">
+            <UButton
+              icon="i-lucide-printer"
+              color="neutral"
+              variant="outline"
+              :label="$t('handover.downloadPdf')"
+              :loading="pdfBusy === s.id"
+              @click="downloadPdf(s)"
+            />
+            <UButton v-if="s.status !== 'diterima'" :label="$t('handover.confirm')" :loading="confirming === s.id" @click="confirm(s.id)" />
           </div>
         </UCard>
       </div>
